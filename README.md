@@ -31,9 +31,7 @@ pull keeps the existing clone instead of deleting and re-cloning it.
 ## Working on the plugin
 
 On the machine where the plugin is edited, point the marketplace at this
-checkout instead of at the remote. Claude Code then reads the working tree
-directly, so an edit is live in the next session without a push-and-pull round
-trip.
+checkout instead of at the remote, which drops the network from the edit loop.
 
 ```sh
 claude plugin marketplace add ~/projects/coffeebeats/claude-ez
@@ -43,6 +41,24 @@ claude plugin install ez@claude-ez
 Only one of the two can be registered at a time; they share the marketplace name
 `claude-ez`. Remove the other first with `claude plugin marketplace remove
 claude-ez`.
+
+**An edit to the working tree is not live.** Installing copies the plugin into
+`~/.claude/plugins/cache/claude-ez/ez/<version>/`, and that copy is what every
+session loads. For a directory source backed by a git repository the version is
+the resolved commit SHA, so the loop is:
+
+```sh
+git commit ...            # the SHA changes, which is the only refresh trigger
+claude plugin update ez   # re-copies into a new cache directory
+                          # then restart Claude Code
+```
+
+`claude plugin update` compares **versions, not content**. An uncommitted edit
+leaves the SHA unchanged, so update reports "already at the latest version" and
+the stale copy keeps being served with no warning. If a cache entry is ever
+wrong, `claude plugin uninstall ez@claude-ez` followed by a fresh install
+rebuilds it; deleting the cache directory alone does not, because the recorded
+`installPath` then points at nothing.
 
 Nothing may live in `~/.claude/skills/ez/`. A directory there loads as a second
 copy of the same plugin under `ez@skills-dir`, and both sets of skills are then
