@@ -1,0 +1,7 @@
+{
+  "name": "ez",
+  "description": "A portable chain that carries a change from working tree to open pull request, in any git repository and any language.",
+  "author": {
+    "name": "coffeebeats"
+  }
+}
