@@ -64,6 +64,12 @@ Nothing may live in `~/.claude/skills/ez/`. A directory there loads as a second
 copy of the same plugin under `ez@skills-dir`, and both sets of skills are then
 offered at once.
 
+## Licence
+
+MIT, in `LICENSE`. The one exception is `plugins/ez/skills/no-ai-slop/`, which is
+vendored from a third party under its own MIT notice — that directory keeps its
+`LICENSE` and `UPSTREAM.md`, and both must travel with any copy of it.
+
 ## Versioning
 
 `plugin.json` and the marketplace entry deliberately carry no `version`. With
