@@ -107,6 +107,8 @@ Claude Code keeps out of git. `skillOverrides` does not apply to plugin skills.
 ## A note on versioning
 
 `plugin.json` deliberately carries no `version`. With none set, Claude Code
-resolves the plugin to its commit SHA, so `claude plugin update ez` tracks the
-branch and a stale copy is never served from cache. Adding a version means
-bumping it on every release or clients silently keep the old copy.
+resolves the plugin to its commit SHA, so `claude plugin update ez` and
+auto-update track the branch, and a running session picks up the new copy at
+`/reload-plugins` or its next start. Adding a version means bumping it on every
+release or clients silently keep the old copy. To try an edit before it is on
+`main`, see the root README.
