@@ -1,8 +1,8 @@
 # claude-ez
 
-A private Claude Code marketplace carrying one plugin, `ez` — four skills that
-take a change from working tree to open pull request in any git repository and
-any language. `plugins/ez/README.md` documents the chain itself and the
+A private Claude Code marketplace carrying one plugin, `ez` — five skills that
+take a change from critical review through working tree to open pull request in
+any git repository and any language. `plugins/ez/README.md` documents the chain itself and the
 per-repository `.claude/ez.json` schema.
 
 ```
@@ -22,8 +22,9 @@ claude plugin marketplace add git@github.com:coffeebeats/claude-ez.git
 claude plugin install ez@claude-ez
 ```
 
-Verify with `claude plugin details ez` — four skills, no hooks. `/ez:commit`,
-`/ez:pr`, `/ez:comments`, and `/ez:no-ai-slop` are then available everywhere.
+Verify with `claude plugin details ez` — five skills, two agents, no hooks.
+`/ez:review`, `/ez:commit`, `/ez:pr`, `/ez:comments`, and `/ez:no-ai-slop` are
+then available everywhere.
 
 Set `CLAUDE_CODE_PLUGIN_KEEP_MARKETPLACE_ON_FAILURE=1` so a failed background
 pull keeps the existing clone instead of deleting and re-cloning it.

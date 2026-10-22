@@ -1,0 +1,396 @@
+---
+name: review
+description: >-
+  Critically reviews a change — the checked-out branch and its open PR by
+  default, or a PR number, branch, commit range, or path passed as the
+  argument — for correctness, reliability, performance, simplicity, and fit
+  with the codebase's own patterns, and prints a ranked list of findings each
+  anchored to a line and backed by the concrete scenario in which the code
+  misbehaves; an empty report is a valid result. An effort word (low, medium,
+  high, xhigh, max) sets how much the review spends, from one diff pass to a
+  multi-agent find-and-verify run, on the same recipe table as Claude Code's
+  own /code-review. Never edits and never posts to the PR. Run it again after
+  fixing and it reconciles against the previous run on the same branch. Works
+  in any git repository and any language. Use this whenever a change needs a
+  critical read before it ships — invoked by the user via /ez:review, or by
+  the model when asked to review, critique, or sanity-check code.
+argument-hint: "[pr#|branch|range|path] [low|medium|high|xhigh|max] [all]"
+allowed-tools: Bash, Read, Grep, Glob, Agent, Write
+---
+
+# ez:review
+
+Find what is wrong with a change before a human reviewer or production does.
+The output is a short ranked list of findings a maintainer would act on, each
+backed by a scenario in which the code misbehaves. A tour of the diff, praise,
+and style notes are not output.
+
+**A project skill wins.** If this repository carries its own review skill —
+`.claude/skills/*review*/SKILL.md` — that skill knows the house bar and this one
+does not. Name it and stop rather than running.
+
+## Hard rules — never violate
+
+- NEVER edit the working tree, stage, commit, switch branches, or touch a
+  remote. The one file you write is the report under `.git/info/`. Fixing is
+  the user's call, after they have read the report.
+- NEVER post to the PR, open an issue, or comment anywhere. The report goes to
+  the user, in the terminal.
+- Every finding cites a `path:line` and carries a **failure scenario** — the
+  input, state, or timing that makes the code misbehave, and what it does
+  wrong. A cleanup finding carries a **concrete cost** instead. A candidate you
+  cannot back up with one of those is dropped, not hedged.
+- **An empty report is a valid outcome.** Finding nothing after a real search
+  is a result; inventing a finding to fill the list is a failure. No level
+  below sets a floor, and none of them pads.
+- Judge the change against what it is trying to do. A behavior change the PR
+  body or commit message asks for is not a bug.
+
+## The bar
+
+A finding is something the author would fix if they knew about it. All of
+these hold at every level:
+
+- It is **introduced or re-exposed by this change**, not merely present in the
+  file. A problem on lines the change did not touch is out of scope unless the
+  change makes it worse or newly reachable; name at most one such thing,
+  marked pre-existing, and only when it is serious.
+- It is **demonstrable from the code**, with a line you can cite, not an
+  inference from a name or a guess about intent. "May disrupt another part of
+  the codebase" is not a finding; the affected caller, named, is.
+- It is **discrete and actionable** — one thing, at one place, with a fix the
+  author could make.
+- It does **not demand rigor the rest of the codebase lacks**. Asking for a
+  pattern the repo uses nowhere is advice, not a finding.
+- It is **not what tooling reports.** The compiler, type-checker, linter, and
+  formatter run in CI; a missing import, a type error, a format nit is theirs.
+  Running the gate is `/ez:commit`'s job, not this skill's. A single existing
+  test or a one-line scratch check that confirms or refutes a candidate is
+  fine when it is side-effect free.
+- It is **not a nit a senior engineer would let pass** — naming taste, a
+  comment's wording, a style preference nobody wrote down.
+
+The bar says what counts. Which way to lean on a candidate you half believe
+is set by the level, below.
+
+## Inputs
+
+`/ez:review [target] [level] [all]`. All three are optional and may come in
+any order. In most runs there is no target, and the review covers the
+checked-out branch. `all` lifts the cap on the number of findings.
+
+The level is one of `low`, `medium`, `high`, `xhigh`, `max`; with none given
+it is `xhigh`. Any other word is part of the target.
+
+The target is freeform. Resolve it in this order and say which case applied:
+
+- **Nothing.** The current branch. Its base is the base of its open PR
+  (`gh pr view --json baseRefName,number,title,body,url`), else the branch
+  below it in a stack (the head of the open PR that is an ancestor of HEAD,
+  nearest first, per `git merge-base --is-ancestor`), else the repo's default
+  branch (`git symbolic-ref refs/remotes/origin/HEAD`, falling back to
+  `main`/`master`). The scope is `git diff <merge-base>...HEAD` **plus** the
+  working tree — `git diff HEAD` and every untracked file — because the review
+  usually runs before the commit. On the default branch itself the scope is the
+  working tree alone; if that is clean, say there is nothing to review and stop.
+- **A PR number, `#123`, or a PR URL.** `gh pr view <n> --json
+  headRefName,headRefOid,baseRefName,title,body,url,reviews,comments`. When
+  its head is the current branch, review as above. Otherwise never switch
+  branches: `git fetch origin pull/<n>/head` and read the code from a detached
+  throwaway worktree (`git worktree add --detach <tmp> FETCH_HEAD`, removed
+  with `git worktree remove <tmp>` at the end). The scope is the merge-base of
+  base and head, to head.
+- **A branch name** that exists locally or on `origin`. As the PR case: current
+  branch → in place; otherwise a worktree at its tip. Its base is its open PR's
+  base if it has one, else the default branch.
+- **A commit range** (`a..b`, `a...b`) **or a single revision** (`HEAD~2`, a
+  SHA). That range, from the current checkout when its tip is HEAD, otherwise
+  from a worktree at the tip.
+- **One or more paths** that exist. A whole-file review of those files as they
+  stand, with no diff: treat every line as changed, skip the removed-behavior
+  angle, and say that the review is of the file rather than of a change.
+- **Anything else.** Say what you tried to resolve it as and stop.
+
+## Levels
+
+The level is how much the review may spend, and it picks the recipe. The table
+is the one Claude Code's bundled `/code-review` runs for Opus-class models,
+cell for cell, so a bare `/ez:review` does what a bare `/code-review` does
+(`SOURCES.md` records where it comes from). Below `max` nothing is delegated:
+the angles, the check, and the sweep all run in this context.
+
+| Level | Recipe | Angles | Per angle | Lean | Cap |
+|---|---|---|---|---|---|
+| `low` | one diff pass, hunks only, no file reads | — | — | precision | 4 |
+| `medium` | angles inline → dedup → self-check | A B C E G H I J | 6 | precision | 10 |
+| `high` | angles inline → dedup → self-check | A B C E G H I J | 6 | recall | 10 |
+| `xhigh` | angles inline → dedup → self-check → sweep | A–K | 8 | recall | 15 |
+| `max` | finder agents → dedup → verifier agents → sweep | A–K | 8 | recall | 15 |
+
+**Precision** means every finding you surface should be one a maintainer would
+act on: a half-believed candidate still goes to the check, and the check drops
+what you cannot stand behind. **Recall** means catching real bugs matters more
+than avoiding false positives — a missed bug ships — so err on the side of
+surfacing and do not drop on uncertainty: a candidate with a nameable scenario
+survives the check unless the code refutes it.
+
+**Smaller models.** If you are a Sonnet-class or smaller model, `medium` and
+above run the `max` recipe with the chosen level's angles, candidates per
+angle, lean, and cap. That is the recipe measured for them.
+
+**Agents.** Only the `max` recipe spawns them. Spawn every agent through the
+Agent tool with its `effort` set to the level word. If the Agent tool is
+unavailable, run the `xhigh` recipe at the chosen level's cap and say so in
+the report. If the tool is there but does not offer the `ez:review-finder` or
+`ez:review-verifier` type, dispatch `general-purpose` with the contents of
+`${CLAUDE_PLUGIN_ROOT}/agents/review-finder.md` or `review-verifier.md` as
+the opening of its prompt. An agent reads; it never edits.
+
+## What the review covers
+
+Five dimensions, each with the lenses in Phase 2. They are lenses on the same
+code, not sections of the report: a finding belongs to whichever dimension
+names its cost, and the report is ranked by severity, not grouped by dimension.
+
+| Dimension | Asks |
+|---|---|
+| **Correctness** | Does the code do what the change intends, for every input, state, and ordering it can meet? |
+| **Reliability** | What happens when something fails, races, or arrives from outside, and does the caller find out? |
+| **Performance** | Does the change do clearly wasted work, or put work on a path that cannot afford it? |
+| **Simplicity** | Is there a plainly simpler or existing form that does the same job, and is the fix at the right depth? |
+| **Fit** | Does it do things the way this codebase does them, and where it departs from the language's idiom, does the departure cost anything? |
+
+"Best practice" on its own is not a finding. A departure from one is a finding
+when you can name what it costs — a bug it invites, a reader it misleads, a
+tool it breaks — and the repo does not already do it the same way everywhere.
+
+## Workflow
+
+### Phase 0 — Resolve the target
+1. `git status --porcelain=v1` and `git branch --show-current`.
+2. Resolve the target per **Inputs**. Record the base, the head SHA, the
+   level, and whether the scope includes uncommitted work.
+3. Gather the scope: `git diff --stat` and the unified diff for the range, the
+   working-tree diff, and the list of untracked files.
+4. Read the repo layer: `CLAUDE.md`, `AGENTS.md`, any `CLAUDE.md` in a
+   directory that is an ancestor of a changed file, `.claude/rules/`, and
+   `.claude/ez.json`. These are the rules the **Fit** dimension can quote.
+
+At `low`, step 4 is skipped and the rest collapses into as few calls as
+resolving the target allows — ideally one, for the diff.
+
+### Phase 1 — Understand the change
+Skipped at `low`. Otherwise, before hunting for faults, state in two or three
+lines what the change is trying to do and how. Take it from the PR title and
+body, the commit messages (`git log --format=%B <base>..<head>`), and the diff
+itself. Where the stated intent and the diff disagree, that gap is the first
+candidate.
+
+If the target is a PR with review comments, read them. A point a reviewer
+already raised and the author already answered is not a finding; a point
+raised and ignored is one, and you may say so.
+
+Then read for context, not just the hunks: the enclosing function of every
+hunk, and the callers of every function whose signature or contract changed
+(Grep the symbol). Bugs in unchanged lines of a touched function are in scope —
+the change re-exposes them or fails to fix them.
+
+### Phase 2 — Find candidates
+
+**At `low`:** one pass over the hunks, skipping test and fixture files, with no
+file reads and no agents. Flag runtime-correctness bugs visible from the hunk
+alone — an inverted or wrong condition, off-by-one, a null or missing value
+where adjacent lines show it can be absent, a removed guard, a falsy-zero
+check, a missing `await`, wrong-variable copy-paste, an error swallowed in a
+catch that should propagate — plus, still from the hunk alone, new code that
+duplicates a helper visible in the diff context and dead code the diff leaves
+behind. Nothing else: not style, naming, performance, tests, or anything
+outside the hunk. Each candidate carries its `path:line` and scenario. Then go
+straight to Phase 5.
+
+**Otherwise,** work through the level's angles, in order. Each angle yields
+**candidates**: `path:line`, the dimension, a one-sentence claim, and the
+failure scenario or concrete cost. Record each candidate as soon as an angle
+produces it. If two angles flag the same line for different reasons, record
+both; one angle's conclusions never suppress another's. Do not drop a
+half-believed candidate. Phase 3 decides, and candidates silently dropped here
+are the main way real bugs are missed. Up to the level's count per angle; past
+that, keep the most severe.
+
+The angles say where to look, not what to find. They exist so the search is
+the same every run; an angle with nothing behind it stays empty, and most do
+on a clean change.
+
+Below `max`, run the angles yourself, in sequence, in this context. At `max`,
+dispatch one `ez:review-finder` per angle via the Agent tool, in parallel,
+each given the diff (or the range and worktree path), the Phase 1 summary, the
+repo rules, and the text of its angle; pool what they return.
+
+#### Correctness
+- **A — Line by line.** Read every hunk, then the function around it. For each
+  changed line ask what input, state, timing, or platform makes it wrong:
+  inverted or incomplete conditions, off-by-one, a null or missing value where
+  adjacent lines show it can be absent, a missing `await` or unjoined task,
+  falsy-zero or empty-string treated as missing, wrong-variable copy-paste,
+  unescaped regex metacharacters, integer overflow and float equality,
+  timezone and encoding assumptions.
+- **B — Removed behavior.** For every line the change deletes or replaces, name
+  the invariant or behavior it enforced, then find where the new code
+  re-establishes it. A removed guard, a dropped error path, a narrowed
+  validation, or a deleted test that covered a real case is a candidate when
+  you cannot find its replacement.
+- **C — Cross-file.** For each function the change alters, check every caller:
+  a new precondition, a changed return shape, a new exception, a new ordering
+  dependency. Check callees too — does another hunk in the same change make a
+  call unsafe? For a type that wraps another (cache, proxy, adapter), check
+  every method routes to the wrapped instance and that it forwards what callers
+  actually use.
+- **D — Language pitfalls.** The classic traps of the diff's language and
+  framework, where the change introduces one: mutable default arguments and
+  late-binding closures, loop-variable capture, `==` coercion, nil-map writes,
+  shared mutable state across async boundaries, iterator invalidation,
+  lifecycle methods that must call super, ORM lazy loads in loops.
+
+#### Reliability
+- **E — Failure paths.** For every error path the change adds or touches: what
+  happens on failure, and does the caller find out? Errors swallowed or logged
+  and forgotten, a broad catch that hides unrelated failures, a fallback that
+  masks the problem it falls back from, partial writes with no rollback, a
+  retry without a bound, a missing timeout, a resource, lock, handle, or
+  subscription not released on every path, work that is not idempotent where
+  it will be retried, ordering or concurrency the code assumes but nothing
+  enforces.
+- **F — Trust boundaries.** Where input from outside the process — a user, the
+  network, a file, the environment, arguments — newly reaches a sink: shell,
+  SQL, path, HTML, deserialization, eval, a permission check, a log line that
+  would carry a secret. Only where the change takes part; a pre-existing hole
+  the change did not widen is out of scope.
+
+#### Performance
+- **G — Wasted work.** Redundant computation or repeated I/O the change adds,
+  N+1 queries, independent operations run in sequence, allocation or
+  regex compilation in a hot loop, blocking work on startup or a hot path,
+  unbounded growth of a cache or buffer, a closure capturing a large scope for
+  a long-lived object. Name the cheaper form. Clear gaps only, not
+  micro-optimizations.
+
+#### Simplicity
+- **H — Reuse and simplification.** New code that re-implements a helper the
+  codebase already has (Grep shared and utility modules and the files next to
+  the change) and name the helper. Redundant or derivable state, copy-paste
+  with slight variation, deep nesting, an abstraction with one use, dead code
+  the change leaves behind. Name the simpler form that does the same job.
+- **I — Altitude.** Does the change fix the cause at the right depth, or patch
+  a symptom? A special case layered onto shared infrastructure is a sign the
+  fix is too shallow; name the general change it should have been.
+
+#### Fit
+- **J — Conventions.** How does neighbouring code do the same thing — the error
+  type, the logging call, the naming, the module layout, the test style — and
+  does the change do it differently without reason? Where a repo rule exists,
+  flag a violation only when you can quote both the rule and the line that
+  breaks it. No taste calls, no "spirit of the doc" inferences.
+- **K — Test evidence.** Does new behavior have a test, and does that test
+  exercise the real code path rather than a hand-built replica or the
+  framework? A test that cannot fail, an assertion weakened to pass, a test
+  deleted or skipped, setup and teardown that are asymmetric. Note gaps and
+  false confidence alike.
+
+### Phase 3 — Dedup and check
+Dedup first: candidates that point at the same line and mechanism collapse to
+one, keeping the most concrete failure scenario.
+
+Then every survivor gets one verdict, by the same three-way standard whoever
+gives it:
+
+- **CONFIRMED** — the inputs or state that trigger the failure and the wrong
+  result can be named, and the line quoted.
+- **PLAUSIBLE** — the mechanism is real but the trigger depends on timing,
+  environment, or configuration the code does not pin down. Say what would
+  confirm it.
+- **REFUTED** — factually wrong (the code does not say that), provably
+  impossible (a type, constant, or invariant rules it out), already guarded
+  (cite the guard), or pure style with no observable effect.
+
+PLAUSIBLE is the default for a realistic runtime state — a race, a rare but
+reachable nil, a boundary the code does not exclude. REFUTED needs evidence
+that can be read from the code, never an imagined defense. Keep CONFIRMED and
+PLAUSIBLE; drop REFUTED. Under a precision lean, also drop a PLAUSIBLE
+candidate you would not put your name to.
+
+**Below `max`,** give the verdict yourself: re-open the cited line and the code
+around it and re-check the candidate against the diff before keeping it. Do
+not re-judge the whole list from scratch, and under a recall lean do not drop
+on uncertainty.
+
+**At `max`,** dispatch one `ez:review-verifier` per candidate via the Agent
+tool, in parallel, each given the candidate, the diff, the files it cites, and
+the worktree path if there is one. The verifier reasons from the code first
+and rules second and returns exactly one verdict. Its verdict stands; do not
+re-argue it.
+
+### Phase 4 — Sweep for gaps
+At `xhigh` and `max` only. Take one more pass, in this context, as a fresh
+reviewer who holds the checked list and is looking **only** for what is not on
+it. Do not re-derive anything already there. The first pass tends to miss:
+moved or extracted code that dropped a guard or an anchor; a config default
+flipped; a predicate with a side effect; a lock whose scope shrank; a value
+computed once that must be computed per call; setup and teardown that are
+asymmetric in tests. Up to eight new candidates, each checked as in Phase 3.
+If there is nothing, say nothing — the sweep does not pad.
+
+### Phase 5 — Report
+1. Rank by severity: correctness and reliability outrank performance,
+   simplicity, and fit when the cap forces a cut; within a dimension,
+   CONFIRMED outranks PLAUSIBLE, and a failure users would hit outranks one
+   they would not.
+2. **At most the level's cap** unless the user passed `all`. Say how many were
+   cut and from which dimension.
+3. **Reconcile with the previous run.** If `.git/info/ez-review.md` exists and
+   its heading names this branch, read it now — after your own findings are
+   settled, never before, so it cannot anchor them. Mark each of its findings
+   **resolved** (the code changed and the scenario no longer holds — read the
+   line to confirm), **still open** (it is in this run's list; say which
+   number), or **withdrawn** (this run refuted it; say why in a clause). A
+   finding the previous run made at a higher level that this run did not look
+   for is neither; say it was not re-checked. Mark this run's remaining
+   findings **new**. A file headed with another branch is stale; ignore and
+   overwrite it.
+4. Print the report in this shape and no other:
+
+   ```markdown
+   ## Review — <branch or target> @ <short sha> · <level> · <n> files, +<a> −<d>
+
+   <two or three lines: what the change does, from Phase 1; omitted at low>
+
+   1. `path/to/file.ext:123` · correctness · CONFIRMED · new
+      <one-sentence claim>. Fails when <scenario → wrong result>.
+      Fix: <one line, only when it is obvious>.
+   2. `path/to/other.ext:40` · reliability · PLAUSIBLE · still open (was #3)
+      <claim>. <scenario>. Confirm by <what the check named>.
+
+   Pre-existing, not counted: `path:line` — <one line>.          (if any)
+   Previous run: 2 resolved, 1 still open, 1 withdrawn (<why>).  (if any)
+   Clean: <the angles that produced nothing, as one line>.
+   ```
+
+   With nothing to report, the list is replaced by the line
+   `No findings. Checked correctness, reliability, performance, simplicity,
+   and fit against <scope>.` plus one line naming any residual risk the
+   review could not settle by reading. No praise section, no summary of the
+   diff beyond the Phase 1 lines, no severity labels beyond the verdict, no
+   code blocks longer than three lines.
+5. Write the same report to `.git/info/ez-review.md` (use
+   `git rev-parse --git-path info` when `.git` is a file), headed with the
+   branch, head SHA, and level, replacing whatever was there. It stays out of
+   `git status`. Remove any worktree Phase 0 created.
+6. Close with one line naming the next step. After a first run with findings:
+   fix what is CONFIRMED and whatever PLAUSIBLE the user judges real, then run
+   `/ez:review` once more so step 3 marks each prior finding and catches what
+   the fixes introduced. After that second run: `/ez:commit` when the tree is
+   dirty, `/ez:pr` when the branch is committed and clean, with `/ez:review
+   max` once before a merge nobody else will read. A third run is not
+   evidence; a reviewer told not to drop on uncertainty will rarely return
+   nothing on correct code, and the stop condition is that nothing is
+   CONFIRMED and every PLAUSIBLE has been read and ruled on, not that the list
+   is empty.

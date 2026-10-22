@@ -1,32 +1,50 @@
 # ez — a portable commit chain for Claude Code
 
-Four skills that carry a change from working tree to open pull request, in any
+Five skills that carry a change from working tree to open pull request, in any
 git repository and any language. Nothing here is language-specific; per-repository
 detail lives in that repo's own `.claude/ez.json` and `.claude/rules/comments.md`.
 
 ```
 .claude-plugin/plugin.json
+skills/review/            critically review a change; findings only, never edits
 skills/comments/          audit and trim the comments in changed files
 skills/commit/            land the tree as ordered atomic commits
 skills/pr/                push the branch and open the PR
 skills/no-ai-slop/        prose judgment; vendored, see UPSTREAM.md
+agents/review-finder.md   read-only finder /ez:review max fans out to, one per angle
+agents/review-verifier.md read-only verifier /ez:review max runs on each candidate
 ```
 
 ## The chain
 
 Every step is user-invoked; the chain never advances on its own.
 
-1. `/ez:comments [files]` — audits and rewrites comments in the changed files to
+1. `/ez:review [target] [level]` — critically reviews the change for
+   correctness, reliability, performance, simplicity, and fit with the
+   codebase, and prints a ranked list of findings, each checked and backed by
+   the scenario in which the code misbehaves. Defaults to the checked-out
+   branch and its open PR; takes a PR number, branch, range, or path. The
+   level — `low`, `medium`, `high`, `xhigh` (default), or `max` — is the same
+   dial as Claude Code's own `/code-review` and picks the same recipe, from
+   one diff pass to a multi-agent find-and-verify run at `max`. Never edits,
+   never posts. Run it once more after fixing and it reconciles against the
+   last run; a third run is not evidence, since a review that may not drop
+   on uncertainty rarely returns nothing on correct code.
+   `skills/review/SOURCES.md` records the evidence behind its shape.
+2. `/ez:comments [files]` — audits and rewrites comments in the changed files to
    the house style. Defaults to everything dirty against `HEAD`.
-2. `/ez:commit` — reviews the tree and lands it as an ordered series of one-line
+3. `/ez:commit` — reviews the tree and lands it as an ordered series of one-line
    conventional commits, one slice at a time. Pass `manual` to have it stage each
    slice and hand the commit back.
-3. `/ez:pr [target]` — pushes the branch and opens a PR titled as a one-line
+4. `/ez:pr [target]` — pushes the branch and opens a PR titled as a one-line
    conventional commit. Pass `manual` to approve the title and body before
    anything reaches the remote.
 
+`/ez:review` also runs usefully after step 4, against the open PR, or against
+someone else's PR by number.
+
 `/ez:no-ai-slop` sits under the chain rather than in it. It owns prose judgment —
-PR titles and bodies, docs, and the wording inside comments — and steps 1 and 3
+PR titles and bodies, docs, and the wording inside comments — and steps 2 and 4
 invoke it themselves. Invoke it directly to edit any prose, or with "is this
 slop?" to audit without rewriting.
 
@@ -35,8 +53,8 @@ each skill says so and because its description says so in every session, not
 because a guard denies the alternative.
 
 **A project's own version of any of these wins.** A repo carrying
-`.claude/skills/*commit*/`, `*pr*/`, `*comment*/`, or its own prose skill knows
-the house conventions; each skill checks for one and defers. Plugin skills are
+`.claude/skills/*review*/`, `*commit*/`, `*pr*/`, `*comment*/`, or its own prose
+skill knows the house conventions; each skill checks for one and defers. Plugin skills are
 namespaced, so a repo's `no-ai-slop` and this one coexist without shadowing.
 
 ## Per-repository configuration
@@ -63,15 +81,16 @@ before staging anything.
 
 ## Install
 
-Requires `gh` authenticated for `/ez:pr`.
+Requires `gh` authenticated for `/ez:pr`, and for `/ez:review` to find a
+branch's PR; without it the review falls back to the default branch as base.
 
 ```sh
 claude plugin marketplace add git@github.com:coffeebeats/claude-ez.git
 claude plugin install ez@claude-ez
 ```
 
-Verify with `claude plugin details ez`, which should list four skills and no
-hooks.
+Verify with `claude plugin details ez`, which should list five skills, two
+agents, and no hooks.
 
 ## Turning it off in one repository
 
