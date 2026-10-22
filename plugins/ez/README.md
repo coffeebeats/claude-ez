@@ -19,14 +19,16 @@ agents/review-verifier.md read-only verifier /ez:review max runs on each candida
 
 Every step is user-invoked; the chain never advances on its own.
 
-1. `/ez:review [target] [level]` — critically reviews the change for
+1. `/ez:review [level] [notes]` — critically reviews the change for
    correctness, reliability, performance, simplicity, and fit with the
    codebase, and prints a ranked list of findings, each checked and backed by
-   the scenario in which the code misbehaves. Defaults to the checked-out
-   branch and its open PR; takes a PR number, branch, range, or path. The
-   level — `low`, `medium`, `high`, `xhigh` (default), or `max` — is the same
-   dial as Claude Code's own `/code-review` and picks the same recipe, from
-   one diff pass to a multi-agent find-and-verify run at `max`. Never edits,
+   the scenario in which the code misbehaves. The level comes first. It is
+   one of `low`, `medium`, `high`, `xhigh` (default), or `max`, the same dial
+   as Claude Code's own `/code-review`, and picks the same recipe, from one
+   diff pass to a multi-agent find-and-verify run at `max`. The notes are
+   free-form: name a PR number, branch, range, or path to review that instead
+   of the checked-out branch and its open PR, say what the change is for or
+   where to look hardest, or ask for every finding past the cap. Never edits,
    never posts. Run it once more after fixing and it reconciles against the
    last run; a third run is not evidence, since a review that may not drop
    on uncertainty rarely returns nothing on correct code.

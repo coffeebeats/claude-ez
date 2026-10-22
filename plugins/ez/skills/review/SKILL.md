@@ -2,19 +2,21 @@
 name: review
 description: >-
   Critically reviews a change — the checked-out branch and its open PR by
-  default, or a PR number, branch, commit range, or path passed as the
-  argument — for correctness, reliability, performance, simplicity, and fit
+  default, or a PR number, branch, commit range, or path named in free-form
+  notes, which can also say what the change is for and where to look
+  hardest — for correctness, reliability, performance, simplicity, and fit
   with the codebase's own patterns, and prints a ranked list of findings each
   anchored to a line and backed by the concrete scenario in which the code
-  misbehaves; an empty report is a valid result. An effort word (low, medium,
-  high, xhigh, max) sets how much the review spends, from one diff pass to a
-  multi-agent find-and-verify run, on the same recipe table as Claude Code's
-  own /code-review. Never edits and never posts to the PR. Run it again after
-  fixing and it reconciles against the previous run on the same branch. Works
-  in any git repository and any language. Use this whenever a change needs a
-  critical read before it ships — invoked by the user via /ez:review, or by
-  the model when asked to review, critique, or sanity-check code.
-argument-hint: "[pr#|branch|range|path] [low|medium|high|xhigh|max] [all]"
+  misbehaves; an empty report is a valid result. A leading effort word (low,
+  medium, high, xhigh, max) sets how much the review spends, from one diff
+  pass to a multi-agent find-and-verify run, on the same recipe table as
+  Claude Code's own /code-review. Never edits and never posts to the PR. Run
+  it again after fixing and it reconciles against the previous run on the
+  same branch. Works in any git repository and any language. Use this
+  whenever a change needs a critical read before it ships — invoked by the
+  user via /ez:review, or by the model when asked to review, critique, or
+  sanity-check code.
+argument-hint: "[low|medium|high|xhigh|max] [notes: pr#, branch, range, path, or focus]"
 allowed-tools: Bash, Read, Grep, Glob, Agent, Write
 ---
 
@@ -75,21 +77,39 @@ is set by the level, below.
 
 ## Inputs
 
-`/ez:review [target] [level] [all]`. All three are optional and may come in
-any order. In most runs there is no target, and the review covers the
-checked-out branch. `all` lifts the cap on the number of findings.
+`/ez:review [level] [notes]`. Both are optional.
 
-The level is one of `low`, `medium`, `high`, `xhigh`, `max`; with none given
-it is `xhigh`. Any other word is part of the target.
+The level is the first word when that word is `low`, `medium`, `high`,
+`xhigh`, or `max`; with none given it is `xhigh`. Only the first word is read
+this way, so a level word later in the notes is prose.
 
-The target is freeform. Resolve it in this order and say which case applied:
+Everything after the level is notes, in the user's own words. Most runs have
+none, and the review covers the checked-out branch. Read the notes for three
+things and say which you found:
 
-- **Nothing.** The current branch. Its base is the base of its open PR
-  (`gh pr view --json baseRefName,number,title,body,url`), else the branch
-  below it in a stack (the head of the open PR that is an ancestor of HEAD,
-  nearest first, per `git merge-base --is-ancestor`), else the repo's default
-  branch (`git symbolic-ref refs/remotes/origin/HEAD`, falling back to
-  `main`/`master`). The scope is `git diff <merge-base>...HEAD` **plus** the
+- **A target** — a PR number or URL, a branch, a commit range or revision, or
+  paths that the notes ask to review. Resolve it per the cases below. A name
+  the notes only mention, as in "the retry change in `src/net.ts` is
+  deliberate" or "look hardest at `auth/`", is guidance, and so is a bare
+  word that names nothing; the scope stays the checked-out branch. When it is
+  unclear which the user meant, read it as guidance. When the notes ask to
+  review a PR, branch, range, or path that does not exist, say so and stop
+  rather than guess.
+- **Guidance** — what the change is for, where to look hardest, what to leave
+  alone. Intent stated here counts as the PR body does. Focus decides where
+  the angles dig first; it switches none of them off unless the notes ask to
+  look only at one thing. Guidance never lowers the bar and never sets a
+  floor: "find at least five" gets no padding.
+- **A request for every finding**, which lifts the level's cap.
+
+Resolve the target in this order and say which case applied:
+
+- **No target in the notes.** The current branch. Its base is the base of its
+  open PR (`gh pr view --json baseRefName,number,title,body,url`), else the
+  branch below it in a stack (the head of the open PR that is an ancestor of
+  HEAD, nearest first, per `git merge-base --is-ancestor`), else the repo's
+  default branch (`git symbolic-ref refs/remotes/origin/HEAD`, falling back
+  to `main`/`master`). The scope is `git diff <merge-base>...HEAD` **plus** the
   working tree — `git diff HEAD` and every untracked file — because the review
   usually runs before the commit. On the default branch itself the scope is the
   working tree alone; if that is clean, say there is nothing to review and stop.
@@ -109,7 +129,6 @@ The target is freeform. Resolve it in this order and say which case applied:
 - **One or more paths** that exist. A whole-file review of those files as they
   stand, with no diff: treat every line as changed, skip the removed-behavior
   angle, and say that the review is of the file rather than of a change.
-- **Anything else.** Say what you tried to resolve it as and stop.
 
 ## Levels
 
@@ -169,7 +188,8 @@ tool it breaks — and the repo does not already do it the same way everywhere.
 ### Phase 0 — Resolve the target
 1. `git status --porcelain=v1` and `git branch --show-current`.
 2. Resolve the target per **Inputs**. Record the base, the head SHA, the
-   level, and whether the scope includes uncommitted work.
+   level, any guidance from the notes, and whether the scope includes
+   uncommitted work.
 3. Gather the scope: `git diff --stat` and the unified diff for the range, the
    working-tree diff, and the list of untracked files.
 4. Read the repo layer: `CLAUDE.md`, `AGENTS.md`, any `CLAUDE.md` in a
@@ -181,10 +201,10 @@ resolving the target allows — ideally one, for the diff.
 
 ### Phase 1 — Understand the change
 Skipped at `low`. Otherwise, before hunting for faults, state in two or three
-lines what the change is trying to do and how. Take it from the PR title and
-body, the commit messages (`git log --format=%B <base>..<head>`), and the diff
-itself. Where the stated intent and the diff disagree, that gap is the first
-candidate.
+lines what the change is trying to do and how. Take it from the notes, the PR
+title and body, the commit messages (`git log --format=%B <base>..<head>`),
+and the diff itself. Where the stated intent and the diff disagree, that gap
+is the first candidate.
 
 If the target is a PR with review comments, read them. A point a reviewer
 already raised and the author already answered is not a finding; a point
@@ -198,7 +218,9 @@ the change re-exposes them or fails to fix them.
 ### Phase 2 — Find candidates
 
 **At `low`:** one pass over the hunks, skipping test and fixture files, with no
-file reads and no agents. Flag runtime-correctness bugs visible from the hunk
+file reads and no agents. Phase 1 does not run, so take the notes' guidance
+here: skip what they leave alone, and judge each hunk against the intent they
+state. Flag runtime-correctness bugs visible from the hunk
 alone — an inverted or wrong condition, off-by-one, a null or missing value
 where adjacent lines show it can be absent, a removed guard, a falsy-zero
 check, a missing `await`, wrong-variable copy-paste, an error swallowed in a
@@ -224,7 +246,8 @@ on a clean change.
 Below `max`, run the angles yourself, in sequence, in this context. At `max`,
 dispatch one `ez:review-finder` per angle via the Agent tool, in parallel,
 each given the diff (or the range and worktree path), the Phase 1 summary, the
-repo rules, and the text of its angle; pool what they return.
+guidance from the notes, the repo rules, and the text of its angle; pool what
+they return.
 
 #### Correctness
 - **A — Line by line.** Read every hunk, then the function around it. For each
@@ -298,7 +321,8 @@ repo rules, and the text of its angle; pool what they return.
 
 ### Phase 3 — Dedup and check
 Dedup first: candidates that point at the same line and mechanism collapse to
-one, keeping the most concrete failure scenario.
+one, keeping the most concrete failure scenario. Then drop any candidate in
+code the notes said to leave alone.
 
 Then every survivor gets one verdict, by the same three-way standard whoever
 gives it:
@@ -324,10 +348,10 @@ not re-judge the whole list from scratch, and under a recall lean do not drop
 on uncertainty.
 
 **At `max`,** dispatch one `ez:review-verifier` per candidate via the Agent
-tool, in parallel, each given the candidate, the diff, the files it cites, and
-the worktree path if there is one. The verifier reasons from the code first
-and rules second and returns exactly one verdict. Its verdict stands; do not
-re-argue it.
+tool, in parallel, each given the candidate, the Phase 1 summary, the diff,
+the files it cites, and the worktree path if there is one. The verifier
+reasons from the code first and rules second and returns exactly one verdict.
+Its verdict stands; do not re-argue it.
 
 ### Phase 4 — Sweep for gaps
 At `xhigh` and `max` only. Take one more pass, in this context, as a fresh
@@ -344,16 +368,18 @@ If there is nothing, say nothing — the sweep does not pad.
    simplicity, and fit when the cap forces a cut; within a dimension,
    CONFIRMED outranks PLAUSIBLE, and a failure users would hit outranks one
    they would not.
-2. **At most the level's cap** unless the user passed `all`. Say how many were
-   cut and from which dimension.
+2. **At most the level's cap** unless the notes asked for every finding. Say
+   how many were cut and from which dimension.
 3. **Reconcile with the previous run.** If `.git/info/ez-review.md` exists and
    its heading names this branch, read it now — after your own findings are
-   settled, never before, so it cannot anchor them. Mark each of its findings
+   settled, never before, so it cannot anchor them. Mark each of its findings,
+   including those it carried under **Not re-checked**,
    **resolved** (the code changed and the scenario no longer holds — read the
    line to confirm), **still open** (it is in this run's list; say which
    number), or **withdrawn** (this run refuted it; say why in a clause). A
-   finding the previous run made at a higher level that this run did not look
-   for is neither; say it was not re-checked. Mark this run's remaining
+   finding that this run did not look for, because the previous run was at a
+   higher level or this run's notes narrowed it, is neither; it is **not
+   re-checked**, and step 5 carries it forward. Mark this run's remaining
    findings **new**. A file headed with another branch is stale; ignore and
    overwrite it.
 4. Print the report in this shape and no other:
@@ -361,6 +387,7 @@ If there is nothing, say nothing — the sweep does not pad.
    ```markdown
    ## Review — <branch or target> @ <short sha> · <level> · <n> files, +<a> −<d>
 
+   Notes: <the guidance taken from the notes, in one line>.       (if any)
    <two or three lines: what the change does, from Phase 1; omitted at low>
 
    1. `path/to/file.ext:123` · correctness · CONFIRMED · new
@@ -370,26 +397,32 @@ If there is nothing, say nothing — the sweep does not pad.
       <claim>. <scenario>. Confirm by <what the check named>.
 
    Pre-existing, not counted: `path:line` — <one line>.          (if any)
-   Previous run: 2 resolved, 1 still open, 1 withdrawn (<why>).  (if any)
-   Clean: <the angles that produced nothing, as one line>.
+   Previous run: 2 resolved, 1 still open, 1 withdrawn (<why>),
+   1 not re-checked.                                              (if any)
+   Clean: <the angles that ran and produced nothing, as one line>.
+   Skipped: <angles and code the notes switched off or left alone>. (if any)
    ```
 
    With nothing to report, the list is replaced by the line
-   `No findings. Checked correctness, reliability, performance, simplicity,
-   and fit against <scope>.` plus one line naming any residual risk the
-   review could not settle by reading. No praise section, no summary of the
-   diff beyond the Phase 1 lines, no severity labels beyond the verdict, no
-   code blocks longer than three lines.
+   `No findings. Checked <the dimensions that ran> against <scope>.`, the
+   Skipped line when the notes narrowed the run, and one line naming any
+   residual risk the review could not settle by reading. No praise section,
+   no summary of the diff beyond the Phase 1 lines, no severity labels beyond
+   the verdict, no code blocks longer than three lines.
 5. Write the same report to `.git/info/ez-review.md` (use
    `git rev-parse --git-path info` when `.git` is a file), headed with the
-   branch, head SHA, and level, replacing whatever was there. It stays out of
-   `git status`. Remove any worktree Phase 0 created.
+   branch, head SHA, and level, replacing whatever was there. Append every
+   finding step 3 marked not re-checked, copied unchanged, under a
+   `Not re-checked:` heading, so a narrowed run never erases what it did not
+   look at. It stays out of `git status`. Remove any worktree Phase 0 created.
 6. Close with one line naming the next step. After a first run with findings:
    fix what is CONFIRMED and whatever PLAUSIBLE the user judges real, then run
    `/ez:review` once more so step 3 marks each prior finding and catches what
    the fixes introduced. After that second run: `/ez:commit` when the tree is
    dirty, `/ez:pr` when the branch is committed and clean, with `/ez:review
-   max` once before a merge nobody else will read. A third run is not
+   max` once before a merge nobody else will read. When this run marked any
+   finding not re-checked, the next step is instead `/ez:review` without the
+   narrowing notes, whichever run this is. Otherwise a third run is not
    evidence; a reviewer told not to drop on uncertainty will rarely return
    nothing on correct code, and the stop condition is that nothing is
    CONFIRMED and every PLAUSIBLE has been read and ruled on, not that the list
