@@ -103,6 +103,12 @@ Detect anything the file leaves out, and never invent vocabulary:
    that the name is perfect. If Phase 2 later decides a stack is the right
    shape, this becomes the stack's first branch — don't redo it. Skip this step
    only when already on an unprotected branch.
+
+   When `.git/info/ez-review.md` is headed with the branch you just left and
+   the SHA of the current HEAD, it reviewed exactly this work: put the new
+   branch name in its first line in place of the old one, so Phase 1, `/ez:pr`,
+   and the next `/ez:review` all find it. A review at any other SHA is stale;
+   leave it alone.
 4. If the index already has staged changes, propose starting clean:
    `git restore --staged .`.
 5. Run the fast gate now; reserve the full gate for branch tips (Phase 5).

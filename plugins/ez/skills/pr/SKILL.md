@@ -130,9 +130,11 @@ make room.
    the diff.
 2. `**Review**` — **optional, at most two bullets**, one line each, anchored to
    a path. Only for a real hazard — the risky hunk, the deliberate omission, the
-   decision a reviewer would otherwise reverse-engineer. Carry over any
-   unresolved concern from the `/ez:commit` review, including whatever it left
-   in `.git/info/ez-commit-plan.md`. No hazard, no section.
+   decision a reviewer would otherwise reverse-engineer. Carry over any flag
+   `/ez:commit` left unresolved in `.git/info/ez-commit-plan.md`, and any
+   finding listed in `.git/info/ez-review.md` whose path this branch changes
+   (`git diff --name-only <target>...HEAD`), when the file is headed with this
+   branch or, for a stacked branch, with its parent. No hazard, no section.
 3. `**Verified**` — **optional and rare.** CI reports itself, so this earns its
    place only for what CI cannot show: a manual run-the-thing check, a red check
    that is expected, an artifact CI owes. For a user-visible UI change, leave a
