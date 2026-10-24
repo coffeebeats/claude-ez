@@ -1,7 +1,7 @@
 ---
 name: commit
 description: >-
-  Reviews a finished working tree and lands it as one or more branches, each
+  Takes a finished working tree and lands it as one or more branches, each
   split into an ordered sequence of one-line conventional commits, committed one
   slice at a time. Stages, proposes the message, and commits it; pass `manual`
   (or ask to commit yourself) to have it stage and hand off instead. Works in
@@ -13,9 +13,9 @@ allowed-tools: Bash, Read, Grep, Glob, Write, Edit
 
 # ez:commit
 
-Help the user review and land a batch of already-implemented working-tree
-changes, broken into a digestible, ordered sequence of atomic commits across one
-or more branches. The user comes to understand the work one commit at a time. You
+Help the user land a batch of already-implemented working-tree changes, broken
+into a digestible, ordered sequence of atomic commits across one or more
+branches. The user comes to understand the work one commit at a time. You
 stage each slice and commit it; **Manual mode** hands that last step back.
 
 **A project skill wins.** If this repository carries its own commit skill —
@@ -49,8 +49,8 @@ this one does not. Name it and stop rather than running.
 The user reads each diff and runs `git commit` themselves; you only ever touch
 the index. Enter it when they ask — `/ez:commit manual`, "just stage them",
 "I'll commit", "let me review each one" — and stay in it for the rest of the
-session. Phase 4 stops after presenting the message instead of committing;
-everything else is unchanged.
+session. Phase 4 walks through each slice's key hunks before the message and
+stops after presenting it instead of committing; everything else is unchanged.
 
 ## Repository configuration
 
@@ -110,21 +110,24 @@ Detect anything the file leaves out, and never invent vocabulary:
 6. Skim the diff to gauge scope (`git diff --stat` plus untracked files). Judge
    scope by logical concerns, not line totals.
 
-### Phase 1 — Review the whole change
-Read every change. Produce a review grouped by **logical concern, not by file**.
-Per group: what it does, why, the files and hunks involved, and dependencies on
-other groups. Actively check the following, and carry what you find into the
-per-commit callouts in Phase 4:
-- **Reuse blindness** — new helpers duplicating existing utilities (grep first),
-  and raw primitives where the project already has a wrapper for them.
-- **CI/config** — review build, test, and CI edits first; flag any weakened gate.
-- **Hallucinated correctness** — trace the critical path for off-by-ones,
-  missing guards, races.
-- **Test evidence** — does new behavior have a test, and does that test exercise
-  the real code path rather than a hand-built replica or framework behavior?
-  Note gaps and false confidence alike.
-- **Stray changes** — unrelated edits, debug prints, leftover scaffolding.
-Present the review and concerns BEFORE proposing how to commit.
+### Phase 1 — Survey the change
+Read every change and group it by **logical concern, not by file**: per group,
+what it does, the files and hunks involved, and what it depends on. This is the
+raw material for slicing, not a code review; the critical read is
+`/ez:review`'s. If `.git/info/ez-review.md` is missing or headed with another
+branch, say in one line that the tree has not been reviewed, and go on.
+
+Flag only what changes how the tree gets sliced, and carry each flag to the
+slice it touches in Phase 4:
+- **Stray changes** — unrelated edits, debug prints, leftover scaffolding. Each
+  wants its own commit or no commit; ask which.
+- **Weakened gates** — a build, test, or CI edit that removes, skips, or softens
+  a check. It lands as its own commit, never inside a feature slice, and the
+  user rules on it.
+- **Missing tests** — new behavior with no test. Tests ride with the code they
+  cover (Phase 3), so name the gap before the plan is set.
+
+Present the groups and any flags BEFORE proposing how to commit.
 
 ### Phase 2 — Choose the branch strategy
 Default to a **single branch**. Propose a stack of branches only when scope
@@ -155,21 +158,22 @@ Phase 0 status. Get a nod, then execute.
 ### Phase 4 — Execute one commit at a time
 For each planned commit:
 1. Stage only that commit's changes (see Staging).
-2. Show `git diff --staged --stat` and the key hunks for this slice.
-3. State what the commit does, why it's a coherent unit, and what to scrutinize
-   (carry over any Phase 1 concern touching this slice).
-4. Present the commit message as a standalone code block so it stands out, and
+2. Show `git diff --staged --stat`, and name in one line any Phase 1 flag that
+   touches this slice.
+3. Present the commit message as a standalone code block so it stands out, and
    nothing else — no commit command, no instructions:
    ```
    feat(cli): add the --watch flag
    ```
-5. Run `git commit -m "<message>"` and move to the next slice, reporting what
+4. Run `git commit -m "<message>"` and move to the next slice, reporting what
    landed as you go. The user can still re-slice after the fact — an unpushed
    commit is cheap to redo, so keep moving rather than pausing for a nod.
-6. **Manual mode instead:** STOP at step 5. The user may re-slice, move a hunk,
-   split, or reword — adjust the index (`git restore --staged <path>` to back
-   out). When they say "next"/"done", they have committed: re-run `git status`
-   and `git log --oneline -1` to resync to what actually landed (they may have
+5. **Manual mode instead:** before the message, show the key hunks for this
+   slice and say what the commit does, why it is a coherent unit, and what to
+   scrutinize. Then STOP at step 4. The user may re-slice, move a hunk, split,
+   or reword — adjust the index (`git restore --staged <path>` to back out).
+   When they say "next"/"done", they have committed: re-run `git status` and
+   `git log --oneline -1` to resync to what actually landed (they may have
    tweaked or amended), then continue from the true state.
 
 ### Phase 5 — Finish the branch, then chain
@@ -208,7 +212,7 @@ shows in `git status`.
 
 ## Resilience
 For large or multi-branch work, keep a checklist at `.git/info/ez-commit-plan.md`
-(branch plan + per-branch commit list + current position + any review concern
+(branch plan + per-branch commit list + current position + any Phase 1 flag
 left unresolved) and update it as commits land, so the plan survives a long
 session and `/ez:pr` can pick the concerns up for the PR body. Head it with the
 branch it belongs to. `/ez:pr` deletes it once the PR is open; leave it in place

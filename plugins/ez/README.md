@@ -35,7 +35,7 @@ Every step is user-invoked; the chain never advances on its own.
    `skills/review/SOURCES.md` records the evidence behind its shape.
 2. `/ez:comments [files]` — audits and rewrites comments in the changed files to
    the house style. Defaults to everything dirty against `HEAD`.
-3. `/ez:commit` — reviews the tree and lands it as an ordered series of one-line
+3. `/ez:commit` — sorts the tree and lands it as an ordered series of one-line
    conventional commits, one slice at a time. Pass `manual` to have it stage each
    slice and hand the commit back.
 4. `/ez:pr [target]` — pushes the branch and opens a PR titled as a one-line
