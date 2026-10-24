@@ -147,6 +147,12 @@ about." Every production prompt nevertheless carries a short exclusion list
 and a short bar. The angles here are where to look so the search is the same
 every run; the skill says so, and says an empty angle stays empty.
 
+Three items come from the review `/ez:commit` used to run before slicing, which
+the bundled angles lacked: a raw primitive called past an existing wrapper (H),
+debug output and scaffolding left behind (H, and the `low` pass), and a
+weakened gate in build or CI config (K). `/ez:commit` now leaves the critical
+read to this skill.
+
 - <https://arxiv.org/abs/2603.11078>
 - <https://greptile.com/blog/make-llms-shut-up>
 

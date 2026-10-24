@@ -225,10 +225,10 @@ alone — an inverted or wrong condition, off-by-one, a null or missing value
 where adjacent lines show it can be absent, a removed guard, a falsy-zero
 check, a missing `await`, wrong-variable copy-paste, an error swallowed in a
 catch that should propagate — plus, still from the hunk alone, new code that
-duplicates a helper visible in the diff context and dead code the diff leaves
-behind. Nothing else: not style, naming, performance, tests, or anything
-outside the hunk. Each candidate carries its `path:line` and scenario. Then go
-straight to Phase 5.
+duplicates a helper visible in the diff context, and dead code, debug output,
+or scaffolding the diff leaves behind. Nothing else: not style, naming,
+performance, tests, or anything outside the hunk. Each candidate carries its
+`path:line` and scenario. Then go straight to Phase 5.
 
 **Otherwise,** work through the level's angles, in order. Each angle yields
 **candidates**: `path:line`, the dimension, a one-sentence claim, and the
@@ -300,9 +300,11 @@ they return.
 #### Simplicity
 - **H — Reuse and simplification.** New code that re-implements a helper the
   codebase already has (Grep shared and utility modules and the files next to
-  the change) and name the helper. Redundant or derivable state, copy-paste
-  with slight variation, deep nesting, an abstraction with one use, dead code
-  the change leaves behind. Name the simpler form that does the same job.
+  the change) and name the helper, and a raw primitive called where the
+  codebase already wraps it, naming the wrapper. Redundant or derivable state,
+  copy-paste with slight variation, deep nesting, an abstraction with one use,
+  dead code, debug output, or scaffolding the change leaves behind. Name the
+  simpler form that does the same job.
 - **I — Altitude.** Does the change fix the cause at the right depth, or patch
   a symptom? A special case layered onto shared infrastructure is a sign the
   fix is too shallow; name the general change it should have been.
@@ -313,11 +315,13 @@ they return.
   does the change do it differently without reason? Where a repo rule exists,
   flag a violation only when you can quote both the rule and the line that
   breaks it. No taste calls, no "spirit of the doc" inferences.
-- **K — Test evidence.** Does new behavior have a test, and does that test
-  exercise the real code path rather than a hand-built replica or the
+- **K — Test evidence and gates.** Does new behavior have a test, and does that
+  test exercise the real code path rather than a hand-built replica or the
   framework? A test that cannot fail, an assertion weakened to pass, a test
   deleted or skipped, setup and teardown that are asymmetric. Note gaps and
-  false confidence alike.
+  false confidence alike. Then the gate itself, in build, CI, and tool config:
+  a check removed, made non-blocking, or filtered so it no longer runs, a lint
+  rule or warning silenced, a threshold lowered.
 
 ### Phase 3 — Dedup and check
 Dedup first: candidates that point at the same line and mechanism collapse to
