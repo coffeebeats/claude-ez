@@ -150,7 +150,9 @@ the split AND the names before touching git.
 Propose an ordered commit sequence that builds understanding:
 scaffolding/types → core logic → wiring. Each commit = one atomic, logical
 change (split by purpose, not size). List as `n. <type>(<scope>): <desc>` with a
-one-line note on contents.
+one-line note on contents. Before writing the plan, read **Check for a break**
+in `${CLAUDE_PLUGIN_ROOT}/skills/pr/SKILL.md`; a slice that meets it carries
+`!` (`feat(config)!: …`).
 
 **Tests ride with the implementation they cover** — never a trailing test-only
 commit. If that makes a commit too big to read, the feature wants a finer slice,

@@ -115,6 +115,31 @@ Synthesize it from `git log <target>..HEAD`. One line,
 as the commits, summarizing the branch as a whole — often the headline commit's
 message verbatim. Name new API in backticks, as the repo's existing PR titles do.
 
+**Check for a break before settling the type.** Read the diff, not the commit
+messages, for anything a user, caller, or script may already depend on. A
+change is breaking when someone who upgrades without reading the PR gets
+different behavior:
+- a public function, class, command, flag, endpoint, config key, environment
+  variable, or file format removed or renamed, or its arguments, return shape,
+  or raised errors changed;
+- a default changed — a level, timeout, limit, path, or an opt-in turned
+  opt-out;
+- output something may parse changed — stdout versus stderr, format, the
+  wording of machine-read lines, exit codes;
+- input accepted before now rejected — stricter validation, a raised minimum
+  version of a runtime or dependency;
+- persisted data or a wire format that older readers or writers cannot handle.
+
+Mark a break with `!` after the type or scope: `feat(cli)!: …`. A label in the
+commits does not rule one out: `refactor`, "cleanup", and "internal" are
+claims, and a branch that changes behavior someone can see is not a
+`refactor`. Every break also takes a `**Review**` bullet naming who is affected
+and what they change. When you suspect a break but cannot tell whether anything
+outside the repo depends on it, say so in that bullet rather than guess in the
+title. Under release automation `!` picks a major bump, unless the version is
+below 1.0 and the config says otherwise (release-please's
+`bump-minor-pre-major`, for one); read the config and say which bump it gives.
+
 ### Phase 2 — Body
 The body carries three things the diff cannot show — why the branch exists, what
 approach it took, and where to look hardest. Anything readable off the diff is
