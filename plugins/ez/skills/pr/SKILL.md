@@ -4,19 +4,22 @@ description: >-
   Pushes the current branch and opens a pull request against a target branch
   (the repo's default branch, or the parent of a stacked branch), titled as a
   one-line conventional commit summarizing the branch and described in at most
-  eight lines — why it exists, what it did, and where to look hardest. NEVER
-  merges. Pushes and opens in the same turn by default, printing the title and
-  body for the record; `/ez:pr manual` holds for approval instead. Works in any
-  git repository and any language. Use this whenever a branch needs a pull
-  request, in preference to running `gh pr create` directly — invoked by the
-  user via /ez:pr, or by the model when asked to open a PR.
+  eight lines — why it exists, what it did, and where to look hardest. In a
+  `gh stack` stack it also opens the branches below that have no PR yet, in the
+  same pass, and links the PRs into the stack on GitHub. NEVER merges. Pushes and opens
+  in the same turn by default, printing the title and body for the record;
+  `/ez:pr manual` holds for approval instead. Works in any git repository and
+  any language. Use this whenever a branch needs a pull request, in preference
+  to running `gh pr create` or `gh stack submit` directly — invoked by the user
+  via /ez:pr, or by the model when asked to open a PR or submit a stack.
 allowed-tools: Bash, Read, Grep, Glob, Write, Skill
 ---
 
 # ez:pr
 
-Open a pull request for the current branch. `/ez:commit` shaped the history;
-this turns it into something a reviewer can pick up in one read.
+Open a pull request for the current branch, and in a stack for every branch
+below it that has none yet. `/ez:commit` shaped the history; this turns it into
+something a reviewer can pick up in one read.
 
 **Inputs.** `/ez:pr [target-branch] [--draft] [manual]`. The target defaults to
 the branch below this one when the branch is stacked, and to the repo's default
@@ -37,6 +40,10 @@ one does not. Name it and stop rather than running.
   should read as prose the user could have written. A repo that wants one sets
   `"pr": {"footer": "..."}` in `.claude/ez.json`; nothing else adds one.
 - One PR per branch. If one is already open, update it rather than open a second.
+- Of `gh stack`, run only `view` and `link`, and read the stacks API only with
+  `gh api` GETs. `submit`, `push`, `sync`, and `rebase` force-push or rewrite
+  history, `merge` merges, and `submit` also swaps the drafted titles and
+  bodies for generated ones. Restacking is the user's.
 - The title and the body go through `ez:no-ai-slop` before they are printed.
   Skipping it is not a shortcut available to you.
 
@@ -47,7 +54,7 @@ you draft, they reword. Enter it when they ask — `/ez:pr manual`, "let me see
 the title first", "don't push yet", "show me the body" — and stay in it for the
 rest of the session.
 
-- **Phase 3:** stop after printing the title and body instead of pushing. On
+- **Phase 3:** stop after printing the titles and bodies instead of pushing. On
   approval, resume from step 2 with whatever wording they settled on.
 
 Everything else is unchanged, the merge and force-push rules included. Nothing
@@ -87,27 +94,72 @@ messages that do. Write it purely for the human reviewing the PR.
    almost always the next commit — stop and point at `/ez:commit`.
 4. `git log --oneline <target>..HEAD`. Nothing ahead means nothing to open.
 5. `gh pr list --head <branch> --state open`. A hit switches to update mode.
-6. **Stacked branches.** Take membership from the open PRs rather than from any
-   local cache, which drifts:
+6. **Stacked branches.** Stacks are GitHub's own, kept with `gh stack` (the
+   `github/gh-stack` extension), and no other tool. Read the local stack and
+   the open PRs in one call:
    ```sh
+   gh stack view --json
    gh pr list --state open --json number,headRefName,baseRefName
    ```
-   This branch has no PR yet, so it is not in that list and there is no entry to
-   walk back from. Find the parent by ancestry instead: the target is the head
-   branch of the open PR that is an ancestor of HEAD, and the nearest one if
-   several are.
+   Where the two disagree the open PRs are right, since `gh stack` learns of a
+   PR only while it is open. In update mode the target is the PR's own base,
+   and only the lookup and the link below still apply.
+
+   **When `gh stack` tracks this branch,** `branches` runs bottom to top. Walk
+   the entries below this one, past any marked `isMerged`: the first with an
+   open PR is the target, or `trunk` when none has one, and it needs no
+   confirmation.
+   Find out in one loop why each entry passed on the way has no open PR
+   (`gh pr list --head <entry> --state all --json number,state,headRefOid`),
+   counting a PR only when its `headRefOid` is in the entry's history, since
+   branch names get reused. An entry that never had a PR joins this branch in
+   a **run**, opened in the same pass. One whose PR merged is passed like an
+   entry marked `isMerged`, and the check below catches a squash merge. One
+   whose PR was closed unmerged is the user's call; stop and ask. Asked to
+   submit the whole stack, walk from its top entry instead of this one.
+
+   Then check that every branch still sits on its target. Each entry's `base`
+   is the commit it was cut from or last restacked onto, and it must be in the
+   target's history (`git merge-base --is-ancestor <base> <target>`). If it
+   isn't, the branch below was rewritten or squash-merged, so the PR would
+   carry commits its target lacks: stop and point at `gh stack sync`, which is
+   the user's to run. A target that only moved ahead is fine.
+
+   **Otherwise,** take membership from the open PRs. This branch has no PR
+   yet, so it is not in that list and there is no entry to walk back from.
+   Find the parent by ancestry instead: the target is the head branch of the
+   open PR that is an ancestor of HEAD, and the nearest one if several are.
 
    ```sh
    git merge-base --is-ancestor <candidate-head> HEAD
    ```
 
    Propose that branch and confirm before opening. With no such ancestor the
-   target is the repo's default branch. If the repo uses a stacking tool
-   (`gh stack`, `git-branchless`, Graphite), name it and let the user drive it;
-   don't invent its commands.
+   target is the repo's default branch.
+
+   **A PR is stacked when its target is the head of another open PR or of the
+   branch below it in the run.** When the run's bottom (a lone branch is a run
+   of one) targets another open PR, look up that PR's stack before anything is
+   pushed; in update mode, look up this PR's own number first.
+   ```sh
+   gh api "repos/{owner}/{repo}/stacks?pull_request=<n>" \
+     --jq '.[] | {number, prs: [.pull_requests[].number]}'
+   ```
+   A target below the top of its stack is a fork, which a stack cannot hold:
+   stop and say so. In update mode the PR already exists, so a fork skips only
+   the link. A 404 means stacked PRs are off for this repo: open the PRs
+   chained by their bases, skip the link, and say so.
 7. `.git/info/ez-commit-plan.md` names its branch in the heading. Ignore the
-   file outright when that isn't the current branch, since a leftover plan from
-   an earlier branch would otherwise seed this PR with stale concerns.
+   file outright when that isn't the current branch or one in the run, since a
+   leftover plan from an earlier branch would otherwise seed this PR with stale
+   concerns.
+8. **A run** goes through Phases 1 to 3 together. Draft each PR against its
+   own target, the branch below it, with the PR's own branch in place of `HEAD`
+   in every command, so nothing is checked out. Send every draft through one
+   `ez:no-ai-slop` call and print them together. A review headed with the
+   run's bottom branch, at the commit that branch was cut from, covered the
+   whole tree `/ez:commit` split. In Phase 2 it counts for every PR in the
+   run, each keeping the findings in paths it changes.
 
 ### Phase 1 — Title
 Synthesize it from `git log <target>..HEAD`. One line,
@@ -191,19 +243,48 @@ unchanged and the public API is narrower.
 ```
 
 ### Phase 3 — Open the PR
-1. Print the exact title and body, then keep going in the same turn. **Manual
-   mode instead:** STOP here; the user may reword either before anything is
-   pushed.
-2. `git push -u origin HEAD`.
-3. Write the body to `.git/info/ez-pr-body.md` — it stays out of `git status`
-   and sidesteps shell quoting — then
-   `gh pr create --base <target> --title "<title>" --body-file .git/info/ez-pr-body.md`,
-   adding `--draft` if asked.
-4. Update mode instead runs `gh pr edit <number> --title … --body-file …`.
-5. Delete `.git/info/ez-pr-body.md` and `.git/info/ez-commit-plan.md`. The body
-   is scratch and the plan's concerns now live in the PR, so anything left
-   behind is only stale state for the next branch to trip over.
-6. Report the URL and which CI checks will run. Don't poll CI unless asked.
+1. Print the exact title and body of each PR, then keep going in the same turn.
+   **Manual mode instead:** STOP here; the user may reword any of them before
+   anything is pushed.
+2. `git push -u origin <branch>` for each branch in the run. A push rejected
+   as non-fast-forward usually means the user restacked. Restacked branches
+   are theirs to send, with `gh stack push`, so say so and stop.
+3. Open each PR with the body on stdin. The quoted heredoc sidesteps shell
+   quoting and leaves no file to clean up:
+   ```sh
+   gh pr create --head <branch> --base <target> --title "<title>" --body-file - <<'EOF'
+   <body>
+   EOF
+   ```
+   Add `--draft` if asked. A run opens its PRs bottom first. If one fails to
+   open, stop there and link nothing: a chain with a gap would move the base of
+   the PR above the gap down onto the one below it.
+4. Update mode instead runs `gh pr edit <number> --title … --body-file -` with
+   the same heredoc.
+5. **Link stacked PRs into their stack on GitHub.** A PR based on another
+   branch is only chained until it joins a stack, which GitHub shows and
+   merges as one. Pass `link` PR numbers, never branch names: a branch with no
+   PR gets one opened with a generated title. Never pass `--open`, which marks
+   drafts ready.
+   - When step 6's lookup put the run's target at the top of stack N,
+     `gh stack link N <run PRs, bottom first>`. This appends to the top and
+     skips any PR already there.
+   - Otherwise no stack holds the chain yet. It runs from the lowest open PR
+     up through the run: walk `baseRefName` down the open PRs from the run's
+     bottom to a base that no open PR heads, then
+     `gh stack link --base <that base> <chain, bottom first>`. This form
+     takes the whole stack, and without `--base` it moves the bottom PR onto
+     the default branch.
+   - A lone PR on the trunk has no stack to join, and a PR already in a stack
+     needs nothing.
+
+   If `link` fails, say so: the PRs stand, chained by their bases.
+6. Delete `.git/info/ez-commit-plan.md`. Its concerns now live in the PR, so
+   anything left behind is only stale state for the next branch to trip over.
+7. Report each URL and which CI checks will run. Don't poll CI unless asked.
+   For stacked PRs, name the stack they joined, and when `gh stack view` did
+   not track the branch, say that `gh stack checkout <PR>` adopts the stack
+   locally for `gh stack rebase` and `sync`.
    Check the workflow triggers before promising a board: a workflow filtered to
    `pull_request: branches: [main]` never fires for a stacked PR whose base is
    another feature branch, so say the checks may not run at all rather than
