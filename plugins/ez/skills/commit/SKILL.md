@@ -27,6 +27,8 @@ this one does not. Name it and stop rather than running.
 - NEVER run `git commit --amend`, `git merge`, `git rebase`, `git push`,
   `git pull`, or anything else that rewrites history or touches a remote. Plain
   `git commit` is the one write you own, and Manual mode takes even that away.
+- Of `gh stack`, run only `view`, `init`, and `add`, none of which writes to a
+  remote. Opening and linking the stack's PRs is `/ez:pr`'s.
 - NEVER stage or commit directly on a protected branch. Phase 0 creates and
   switches to a working branch before anything else happens; that default name
   needs no sign-off. Only a multi-branch **stack** split (Phase 2) needs its
@@ -199,9 +201,16 @@ throwaway worktree (`git worktree add --detach <tmp> HEAD`, run the gate there,
 install; if that is heavy, say so and offer to skip.
 
 A failing gate may warrant an extra fix commit on the branch. If more branches
-remain, create the next off the current tip so the stack chains
-(`git switch -c <approved-name>`, which carries uncommitted changes forward and
-touches no remote), and return to Phase 3.
+remain, create the next off the current tip so the stack chains, carrying the
+uncommitted changes forward and touching no remote, and return to Phase 3.
+Chain with `gh stack`, so that `/ez:pr` and `gh stack rebase` can find the
+stack. The first time, adopt the current branch with
+`gh stack init --base <base> <current-branch>`, unless `gh stack view` already
+tracks it. `<base>` is the branch the current one was cut from: Phase 0's base
+when Phase 0 created it, else the repo's default branch. Then run
+`gh stack add <approved-name>`. `add` refuses unless the current branch is the
+top of its stack. In that case, or without the extension, use
+`git switch -c <approved-name>` and say the stack is untracked.
 
 When `git status` is clean, summarize the finished branch(es) and close by naming
 `/ez:pr` as the next step. Don't propose a PR title here; titling the branch is
