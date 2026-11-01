@@ -34,8 +34,9 @@ does not. Name it and stop rather than running.
 ## Hard rules — never violate
 
 - NEVER edit the working tree, stage, commit, switch branches, or touch a
-  remote. The one file you write is the report under `.git/info/`. Fixing is
-  the user's call, after they have read the report.
+  remote. The one file you write is the report at `<git-dir>/ez-review.md`
+  (Phase 0 resolves `<git-dir>`). Fixing is the user's call, after they have
+  read the report.
 - NEVER post to the PR, open an issue, or comment anywhere. The report goes to
   the user, in the terminal.
 - Every finding cites a `path:line` and carries a **failure scenario** — the
@@ -186,6 +187,15 @@ tool it breaks — and the repo does not already do it the same way everywhere.
 ## Workflow
 
 ### Phase 0 — Resolve the target
+Before anything else, run `git rev-parse --absolute-git-dir` in the checkout the
+skill was invoked in and record the result as `<git-dir>`. It is the directory
+git keeps for this checkout alone: `.git` in the main checkout,
+`<common .git>/worktrees/<id>` in a linked worktree. The report lives there and
+nowhere else, so a session in another worktree cannot replace it. Keep using
+this value for the whole run, and never resolve it from inside a throwaway
+worktree: `git worktree remove` deletes that worktree's private directory and
+whatever is in it.
+
 1. `git status --porcelain=v1` and `git branch --show-current`.
 2. Resolve the target per **Inputs**. Record the base, the head SHA, the
    level, any guidance from the notes, and whether the scope includes
@@ -374,7 +384,7 @@ If there is nothing, say nothing — the sweep does not pad.
    they would not.
 2. **At most the level's cap** unless the notes asked for every finding. Say
    how many were cut and from which dimension.
-3. **Reconcile with the previous run.** If `.git/info/ez-review.md` exists and
+3. **Reconcile with the previous run.** If `<git-dir>/ez-review.md` exists and
    its heading names this branch, read it now — after your own findings are
    settled, never before, so it cannot anchor them. Mark each of its findings,
    including those it carried under **Not re-checked**,
@@ -413,8 +423,8 @@ If there is nothing, say nothing — the sweep does not pad.
    residual risk the review could not settle by reading. No praise section,
    no summary of the diff beyond the Phase 1 lines, no severity labels beyond
    the verdict, no code blocks longer than three lines.
-5. Write the same report to `.git/info/ez-review.md` (use
-   `git rev-parse --git-path info` when `.git` is a file), headed with the
+5. Write the same report to `<git-dir>/ez-review.md`, the invoking checkout's
+   even when the code was read from a throwaway worktree, headed with the
    branch, head SHA, and level, replacing whatever was there. Append every
    finding step 3 marked not re-checked, copied unchanged, under a
    `Not re-checked:` heading, so a narrowed run never erases what it did not

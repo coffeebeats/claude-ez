@@ -93,6 +93,16 @@ Detect anything the file leaves out, and never invent vocabulary:
 ## Workflow
 
 ### Phase 0 — Preflight
+Before anything else, run `git rev-parse --absolute-git-dir` in the checkout the
+skill was invoked in and record the result as `<git-dir>`. It is the directory
+git keeps for this checkout alone: `.git` in the main checkout,
+`<common .git>/worktrees/<id>` in a linked worktree. `ez-review.md`,
+`ez-commit-plan.md`, and `ez.patch` live there and nowhere else, so a session in
+another worktree cannot replace them. Keep using this value for the whole run,
+and never resolve it from inside Phase 5's throwaway worktree:
+`git worktree remove` deletes that worktree's private directory and whatever is
+in it.
+
 1. `git status --porcelain=v1`; capture modified, added, deleted, renamed, AND
    untracked (`??`) paths. Untracked files are easy to miss — include them. If
    the tree has nothing to commit, say so and stop.
@@ -106,7 +116,7 @@ Detect anything the file leaves out, and never invent vocabulary:
    shape, this becomes the stack's first branch — don't redo it. Skip this step
    only when already on an unprotected branch.
 
-   When `.git/info/ez-review.md` is headed with the branch you just left and
+   When `<git-dir>/ez-review.md` is headed with the branch you just left and
    the SHA of the current HEAD, it reviewed exactly this work: put the new
    branch name in its first line in place of the old one, so Phase 1, `/ez:pr`,
    and the next `/ez:review` all find it. A review at any other SHA is stale;
@@ -122,7 +132,7 @@ Detect anything the file leaves out, and never invent vocabulary:
 Read every change and group it by **logical concern, not by file**: per group,
 what it does, the files and hunks involved, and what it depends on. This is the
 raw material for slicing, not a code review; the critical read is
-`/ez:review`'s. If `.git/info/ez-review.md` is missing or headed with another
+`/ez:review`'s. If `<git-dir>/ez-review.md` is missing or headed with another
 branch, say in one line that the tree has not been reviewed, and go on.
 
 Flag only what changes how the tree gets sliced, and carry each flag to the
@@ -197,8 +207,10 @@ in review.
 Run it directly when the tree is now clean. For a **stack**, later-branch changes
 are still uncommitted, so never stash the live work — verify the tip in a
 throwaway worktree (`git worktree add --detach <tmp> HEAD`, run the gate there,
-`git worktree remove <tmp>`). A fresh worktree may need its own dependency
-install; if that is heavy, say so and offer to skip.
+`git worktree remove <tmp>`). Removing it deletes its private git directory, so
+the plan and any patch stay at the Phase 0 `<git-dir>` throughout. A fresh
+worktree may need its own dependency install; if that is heavy, say so and offer
+to skip.
 
 A failing gate may warrant an extra fix commit on the branch. If more branches
 remain, create the next off the current tip so the stack chains, carrying the
@@ -221,14 +233,14 @@ one.
 Prefer staging **whole files** — most commits map cleanly to a set of files:
 `git add <paths>`. To split one file across commits, stage by hunk with
 `git add -p`, or apply a trimmed patch to the index
-(`git diff -- <file> > .git/info/ez.patch`, keep only this commit's hunks, then
-`git apply --cached .git/info/ez.patch`) — whichever the runtime supports. For a
+(`git diff -- <file> > <git-dir>/ez.patch`, keep only this commit's hunks, then
+`git apply --cached <git-dir>/ez.patch`) — whichever the runtime supports. For a
 new or untracked file, `git add -N <file>` first so it becomes diffable. Unstage
-with `git restore --staged <path>`. The patch lives under `.git/`, so it never
-shows in `git status`.
+with `git restore --staged <path>`. The patch lives in the git directory, so it
+never shows in `git status`.
 
 ## Resilience
-For large or multi-branch work, keep a checklist at `.git/info/ez-commit-plan.md`
+For large or multi-branch work, keep a checklist at `<git-dir>/ez-commit-plan.md`
 (branch plan + per-branch commit list + current position + any Phase 1 flag
 left unresolved) and update it as commits land, so the plan survives a long
 session and `/ez:pr` can pick the concerns up for the PR body. Head it with the

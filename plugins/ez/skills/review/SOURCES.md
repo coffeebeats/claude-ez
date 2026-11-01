@@ -173,8 +173,8 @@ repeated sampling. In the bundled skill a second run converges because the
 procedure is fixed: the same angles in the same order, dedup by line and
 mechanism, a severity sort, a cap. The verifier plays no part in that. This
 skill adds a deterministic scope (merge-base, not branch tip) and
-reconciliation against the previous report under `.git/info/`, read only after
-the new findings are settled so it cannot anchor them.
+reconciliation against the previous report in the checkout's own git directory,
+read only after the new findings are settled so it cannot anchor them.
 
 No reference loops a review until it returns nothing. Anthropic's hosted
 re-review is triggered by new commits and scoped to the delta; the bundled

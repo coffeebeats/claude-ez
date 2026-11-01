@@ -87,6 +87,13 @@ messages that do. Write it purely for the human reviewing the PR.
 ## Workflow
 
 ### Phase 0 — Preflight
+Before anything else, run `git rev-parse --absolute-git-dir` in the checkout the
+skill was invoked in and record the result as `<git-dir>`. It is the directory
+git keeps for this checkout alone: `.git` in the main checkout,
+`<common .git>/worktrees/<id>` in a linked worktree. `/ez:commit`'s plan and
+`/ez:review`'s report live there and nowhere else, so a session in another
+worktree cannot replace them.
+
 1. `gh auth status`; stop if unauthenticated. If the remote is not GitHub, say
    so and stop rather than guessing at another forge's CLI.
 2. `git branch --show-current`. Refuse to open a PR from the target itself.
@@ -149,7 +156,7 @@ messages that do. Write it purely for the human reviewing the PR.
    stop and say so. In update mode the PR already exists, so a fork skips only
    the link. A 404 means stacked PRs are off for this repo: open the PRs
    chained by their bases, skip the link, and say so.
-7. `.git/info/ez-commit-plan.md` names its branch in the heading. Ignore the
+7. `<git-dir>/ez-commit-plan.md` names its branch in the heading. Ignore the
    file outright when that isn't the current branch or one in the run, since a
    leftover plan from an earlier branch would otherwise seed this PR with stale
    concerns.
@@ -208,8 +215,8 @@ make room.
 2. `**Review**` — **optional, at most two bullets**, one line each, anchored to
    a path. Only for a real hazard — the risky hunk, the deliberate omission, the
    decision a reviewer would otherwise reverse-engineer. Carry over any flag
-   `/ez:commit` left unresolved in `.git/info/ez-commit-plan.md`, and any
-   finding listed in `.git/info/ez-review.md` whose path this branch changes
+   `/ez:commit` left unresolved in `<git-dir>/ez-commit-plan.md`, and any
+   finding listed in `<git-dir>/ez-review.md` whose path this branch changes
    (`git diff --name-only <target>...HEAD`), when the file is headed with this
    branch or, for a stacked branch, with its parent. No hazard, no section.
 3. `**Verified**` — **optional and rare.** CI reports itself, so this earns its
@@ -279,8 +286,11 @@ unchanged and the public API is narrower.
      needs nothing.
 
    If `link` fails, say so: the PRs stand, chained by their bases.
-6. Delete `.git/info/ez-commit-plan.md`. Its concerns now live in the PR, so
-   anything left behind is only stale state for the next branch to trip over.
+6. Delete `<git-dir>/ez-commit-plan.md` only when its heading names the current
+   branch or a branch in the run, the test Phase 0 step 7 applies when reading
+   it. Its concerns now live in the PR, so anything left behind is only stale
+   state for the next branch to trip over. A plan headed with any other branch
+   is not this run's to delete.
 7. Report each URL and which CI checks will run. Don't poll CI unless asked.
    For stacked PRs, name the stack they joined, and when `gh stack view` did
    not track the branch, say that `gh stack checkout <PR>` adopts the stack
