@@ -101,7 +101,7 @@ git keeps for this checkout alone: `.git` in the main checkout,
 another worktree cannot replace them. Keep using this value for the whole run,
 and never resolve it from inside Phase 5's throwaway worktree:
 `git worktree remove` deletes that worktree's private directory and whatever is
-in it.
+in it. Quote it in shell commands, since the path may contain spaces.
 
 1. `git status --porcelain=v1`; capture modified, added, deleted, renamed, AND
    untracked (`??`) paths. Untracked files are easy to miss — include them. If
@@ -233,11 +233,11 @@ one.
 Prefer staging **whole files** — most commits map cleanly to a set of files:
 `git add <paths>`. To split one file across commits, stage by hunk with
 `git add -p`, or apply a trimmed patch to the index
-(`git diff -- <file> > <git-dir>/ez.patch`, keep only this commit's hunks, then
-`git apply --cached <git-dir>/ez.patch`) — whichever the runtime supports. For a
-new or untracked file, `git add -N <file>` first so it becomes diffable. Unstage
-with `git restore --staged <path>`. The patch lives in the git directory, so it
-never shows in `git status`.
+(`git diff -- <file> > "<git-dir>/ez.patch"`, keep only this commit's hunks,
+then `git apply --cached "<git-dir>/ez.patch"`) — whichever the runtime
+supports. For a new or untracked file, `git add -N <file>` first so it becomes
+diffable. Unstage with `git restore --staged <path>`. The patch lives in the git
+directory, so it never shows in `git status`.
 
 ## Resilience
 For large or multi-branch work, keep a checklist at `<git-dir>/ez-commit-plan.md`

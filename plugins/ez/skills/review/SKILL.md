@@ -12,10 +12,10 @@ description: >-
   pass to a multi-agent find-and-verify run, on the same recipe table as
   Claude Code's own /code-review. Never edits and never posts to the PR. Run
   it again after fixing and it reconciles against the previous run on the
-  same branch. Works in any git repository and any language. Use this
-  whenever a change needs a critical read before it ships — invoked by the
-  user via /ez:review, or by the model when asked to review, critique, or
-  sanity-check code.
+  same branch in the same checkout. Works in any git repository and any
+  language. Use this whenever a change needs a critical read before it ships —
+  invoked by the user via /ez:review, or by the model when asked to review,
+  critique, or sanity-check code.
 argument-hint: "[low|medium|high|xhigh|max] [notes: pr#, branch, range, path, or focus]"
 allowed-tools: Bash, Read, Grep, Glob, Agent, Write
 ---
@@ -194,7 +194,8 @@ git keeps for this checkout alone: `.git` in the main checkout,
 nowhere else, so a session in another worktree cannot replace it. Keep using
 this value for the whole run, and never resolve it from inside a throwaway
 worktree: `git worktree remove` deletes that worktree's private directory and
-whatever is in it.
+whatever is in it. Quote it in shell commands, since the path may contain
+spaces.
 
 1. `git status --porcelain=v1` and `git branch --show-current`.
 2. Resolve the target per **Inputs**. Record the base, the head SHA, the

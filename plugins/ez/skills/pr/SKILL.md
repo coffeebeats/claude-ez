@@ -92,7 +92,8 @@ skill was invoked in and record the result as `<git-dir>`. It is the directory
 git keeps for this checkout alone: `.git` in the main checkout,
 `<common .git>/worktrees/<id>` in a linked worktree. `/ez:commit`'s plan and
 `/ez:review`'s report live there and nowhere else, so a session in another
-worktree cannot replace them.
+worktree cannot replace them. Quote it in shell commands, since the path may
+contain spaces.
 
 1. `gh auth status`; stop if unauthenticated. If the remote is not GitHub, say
    so and stop rather than guessing at another forge's CLI.
@@ -292,6 +293,8 @@ unchanged and the public API is narrower.
    state for the next branch to trip over. A plan headed with any other branch
    is not this run's to delete.
 7. Report each URL and which CI checks will run. Don't poll CI unless asked.
+   When Phase 2 found no review that counts for a PR, say so in one line outside
+   the body. A review run in another worktree is not visible from this one.
    For stacked PRs, name the stack they joined, and when `gh stack view` did
    not track the branch, say that `gh stack checkout <PR>` adopts the stack
    locally for `gh stack rebase` and `sync`.
