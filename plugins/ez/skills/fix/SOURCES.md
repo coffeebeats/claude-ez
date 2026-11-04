@@ -475,9 +475,61 @@ diff it never tested, and Phase 4 would report applied a patch that changed
 nothing. `ls-files --others` run there lists only that directory's files,
 relative to it.
 
+`--check` alone does not prove a diff lands whole. A hunk header's counts tell
+git where the hunk ends, and lines past that end are read as trailing text,
+not as part of the patch. Checked on Git for Windows 2.45.2 with a
+model-written diff whose header said `+18,5` over six added lines. `--check`
+passed, and `git apply` landed five of them and dropped the sixth without an
+error, leaving a `for` loop with no body. `git apply --numstat` reports the
+counts git will actually apply, so comparing them with the diff's own `+` and
+`-` lines catches it. Across 42 candidate diffs written by Haiku 5.5 and
+Sonnet 5.5 proposers on a planted-bug fixture, 19 passed `--check` and the
+comparison flagged exactly the truncated one. So the proposer runs both checks
+on its own diffs before returning them (both read stdin and write nothing),
+the tester treats a count mismatch as a diff that does not apply, and Phase 4
+compares the counts before applying.
+
 - <https://git-scm.com/docs/git-apply>
 - <https://git-scm.com/docs/git-ls-files>
 - <https://git-scm.com/docs/git-stash>
+
+## Why the proposer runs on Sonnet at medium
+
+The proposer was pinned to Opus 5.5 at `high`, about $0.20 a finding. To find
+the cheapest setting that holds quality, each finding was dispatched alone to
+headless `claude -p` runs of the proposer, on a fresh copy of a fixture
+repository, scored against an answer key the agent could not reach. There
+were two fixtures of 20 planted review findings each. The second was an async
+ticketing service of about 1,150 lines with spec documents. It held a claim
+whose mechanism was wrong but whose failure was real, refutations that turn
+on Python and asyncio semantics (wall-clock `timedelta` arithmetic, no
+interleaving without an `await`, `fromisoformat` accepting `Z` since 3.11),
+unchanged code that the change made newly reachable, a rename-only line, a
+fix whose obvious form breaks another caller, and a sanitizer that looks
+safe. Each real finding had a hidden test.
+
+Haiku 5.5 at `high` and Sonnet 5.5 at `medium` both ruled all 20 findings
+correctly on both fixtures. Across 120 verdicts, no real finding was refuted,
+and every real finding got a fix that passed its hidden test once the diff was
+repaired. Only diff hygiene and scope discipline separated them. On the
+finding whose right fix lay outside the change, Haiku's preferred candidate
+fixed a different finding, while Sonnet gave the in-scope patch, marked it as
+patching the symptom, and named the deeper fix under `SCOPE`, as asked.
+Sonnet at `medium` cost $0.92 for the 20 findings, about $0.05 each. Opus was
+not run, since both cheaper settings already scored the maximum. Synthetic
+fixtures this size do not separate current models on judgment, so the risk
+left is code harder than the fixtures. Two backstops cover it. The tester
+stays on Opus, and a finding whose candidates all break goes back to the
+proposer once on Opus.
+
+The same runs measured what the proposer spends tokens on. Diff text was 3%
+to 6% of its output tokens; thinking, tool calls, and the ruling made up the
+rest. So a separate agent that writes the diffs would not save money,
+because it would re-read the files to write 3% to 6% of the output. Bad diffs
+were a quality problem, though. With the earlier prompt, 4 of 11 of Haiku's
+preferred diffs and 2 of 11 of Sonnet's applied cleanly. Adding the
+`--check` and `--numstat` self-check above raised both to 10 of 11, at about
+30% to 40% more cost per finding.
 
 ## Why the record stays in the git directory
 

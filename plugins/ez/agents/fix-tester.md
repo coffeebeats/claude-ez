@@ -43,8 +43,12 @@ diff, run it.
    is an objection the proposer can act on, not by itself a BREAK.
 5. **Run it.** When a candidate is a diff, pipe it to `git -C <checkout>
    apply --check`, which tests it against the checkout's files as they stand,
-   untracked ones included, and writes nothing. A diff that does not apply
-   BREAKS. Then, when an existing test exercises the changed function, run
+   untracked ones included, and writes nothing. `--check` passes a hunk whose
+   header undercounts, and the apply then drops that hunk's last lines, so
+   also pipe it to `git -C <checkout> apply --numstat` and compare the added
+   and removed counts with the diff's `+` and `-` lines. A diff that does not
+   apply, or whose counts differ, BREAKS. Then, when an existing test
+   exercises the changed function, run
    it in a throwaway worktree (`git -C <checkout> worktree add --detach <tmp>
    HEAD`, with `<tmp>` from `mktemp -d`, since other testers run beside you
    and a shared path would let one remove another's worktree) brought to the

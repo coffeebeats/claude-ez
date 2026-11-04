@@ -131,10 +131,10 @@ content rather than trusting the number.
 ## Agents
 
 Two agent types, both read-only, both fresh-context, dispatched through the
-Agent tool. Each runs on the model and effort its own file sets — Opus-class at
-`high`, pinned rather than inherited, because the work is bounded per finding
-and the cost of a run should not depend on what the session is running — and
-you escalate only the findings that prove hard (Phase 2).
+Agent tool. The proposer runs on Sonnet at `medium` and the tester on Opus at
+`high`, each pinned in its own file rather than inherited, because the work is
+bounded per finding and the cost of a run should not depend on what the
+session is running. You escalate only the findings that prove hard (Phase 2).
 
 - `ez:fix-proposer` — rules on the finding first, from the code, and only then
   proposes candidates against the bar. One per finding.
@@ -217,7 +217,8 @@ decided it, what test ran and what it printed, and one pick with the reason
 the others lost, or NONE when nothing holds.
 
 When the tester returns NONE, re-dispatch the proposer for that finding once,
-at `xhigh`, with the tester's objections, and run the tester again on what
+on Opus at `high` (the Agent tool's `model` and `effort` override the file's),
+with the tester's objections, and run the tester again on what
 comes back. One round; after it, the plan shows what stands and what did not,
 and the user decides. A pick that differs from the proposer's preference is
 not a reason for a round: the pick held, and the plan's `Disagreements:` line
@@ -276,9 +277,12 @@ For each other approved item, in order:
 
 1. When the chosen candidate is a diff that held under the tester, and the
    user amended nothing, write it to `<git-dir>/ez-fix.patch` and run
-   `git -C "<checkout>" apply --check` on it. If it applies to the current
-   tree, apply it with `git -C "<checkout>" apply`; that lands exactly the
-   change the tester checked. Otherwise — the check fails, the candidate was
+   `git -C "<checkout>" apply --check` and `git -C "<checkout>" apply
+   --numstat` on it. If it applies to the current tree and the added and
+   removed counts equal the patch's `+` and `-` lines, apply it with
+   `git -C "<checkout>" apply`; that lands exactly the change the tester
+   checked. Otherwise — the check fails, the counts differ (a hunk header that
+   undercounts passes `--check`, and the apply drops lines), the candidate was
    described rather than diffed, or the user amended it — re-read the file at
    the cited location and apply the mechanism by hand. Either way, re-read the
    changed lines afterwards. Remove the patch file once the last item is

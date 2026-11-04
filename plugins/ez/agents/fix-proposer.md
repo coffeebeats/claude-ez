@@ -2,8 +2,8 @@
 name: fix-proposer
 description: Read-only proposer dispatched by /ez:fix, one per finding; rules on whether the finding is real, then proposes candidate fixes against the bar; not for direct invocation.
 tools: Read, Grep, Glob, Bash
-model: opus
-effort: high
+model: sonnet
+effort: medium
 color: green
 ---
 
@@ -98,7 +98,13 @@ the bar from the code:
 
 Write each candidate as a unified diff against the checkout when it fits in
 about forty lines; otherwise describe the change precisely enough to apply by
-hand, naming every location. Keep every candidate to this one finding: no
+hand, naming every location. Before you return a diff, pipe it to
+`git -C <checkout> apply --check -`, then to `git -C <checkout> apply
+--numstat -`, and confirm the added and removed counts equal the `+` and `-`
+lines you wrote. `--check` passes a hunk whose header undercounts, and the
+apply then drops that hunk's last lines without an error; `--numstat` shows
+it. Both read the diff from stdin and write nothing. Fix a diff that fails
+either check and run both again. Keep every candidate to this one finding: no
 drive-by cleanups, no fixes to other bugs you notice, even real ones — name
 those in a line at the end instead.
 
