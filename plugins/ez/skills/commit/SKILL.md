@@ -117,10 +117,10 @@ in it. Quote it in shell commands, since the path may contain spaces.
    only when already on an unprotected branch.
 
    When `<git-dir>/ez-review.md` is headed with the branch you just left and
-   the SHA of the current HEAD, it reviewed exactly this work: put the new
-   branch name in its first line in place of the old one, so Phase 1, `/ez:pr`,
-   and the next `/ez:review` all find it. A review at any other SHA is stale;
-   leave it alone.
+   the SHA of the current HEAD, it reviewed this work, all but the fixes its
+   `Fix record:` marks `applied`: put the new branch name in its first line in
+   place of the old one, so Phase 1, `/ez:pr`, and the next `/ez:review` all
+   find it. A review at any other SHA is stale; leave it alone.
 4. If the index already has staged changes, propose starting clean:
    `git restore --staged .`.
 5. Run the fast gate now; reserve the full gate for branch tips (Phase 5).
@@ -133,7 +133,9 @@ Read every change and group it by **logical concern, not by file**: per group,
 what it does, the files and hunks involved, and what it depends on. This is the
 raw material for slicing, not a code review; the critical read is
 `/ez:review`'s. If `<git-dir>/ez-review.md` is missing or headed with another
-branch, say in one line that the tree has not been reviewed, and go on.
+branch, say in one line that the tree has not been reviewed, and go on; if its
+`Fix record:` marks any fix `applied`, say instead that those fixes have not
+been reviewed.
 
 Flag only what changes how the tree gets sliced, and carry each flag to the
 slice it touches in Phase 4:

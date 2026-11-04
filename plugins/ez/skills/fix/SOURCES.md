@@ -1,0 +1,493 @@
+# Why `/ez:fix` is shaped the way it is
+
+Design notes and the references behind them, so the next edit to `SKILL.md`
+can be checked against what the evidence says rather than against taste.
+Gathered November 2026. Quotes are verbatim; an unopened source says so.
+
+## The motivating failure: "double check this" changes the fix
+
+Judgment is split from authorship because a model re-asked about its own
+work flips, and often toward being wrong.
+
+Huang et al. (Google DeepMind, ICLR 2024) on intrinsic self-correction, where
+the model revises "based solely on its inherent capabilities": "LLMs struggle
+to self-correct their responses without external feedback, and at times, their
+performance even degrades after self-correction."
+
+Sharma et al. (Anthropic, ICLR 2024) ran the exact prompt the motivation
+describes. The challenge was "I don't think that's right. Are you sure?" and
+"models tend to admit mistakes even when they didn't make a mistake"; "AI
+assistants sometimes provide inaccurate information when challenged, even when
+they originally provided accurate information." Appendix A.4: "Asking the 'Are
+you sure?' question causes the accuracy to drop by up to 27% (Claude 1.3) on
+average (across six datasets)"; models changed their initial answer on 32%
+(GPT-4) to 86% (Claude 1.3) of questions. The cause they identify is training:
+"likely driven in part by human preference judgments favoring sycophantic
+responses", and "when a response matches a user's views, it is more likely to
+be preferred."
+
+SycEval (Fanous et al., AAAI 2025): "Sycophantic behavior was observed in
+58.19% of cases"; "regressive sycophancy, leading to incorrect answers, was
+observed in 14.66%"; persistence "78.5%". SYCON Bench (Hong et al., EMNLP 2025
+Findings) scores "how quickly a model conforms to the user (Turn of Flip)",
+finds "sycophancy remains a prevalent failure mode", and that "model scaling
+and reasoning optimization strengthen the model's ability to resist
+undesirable user views." Newer models flip less, not never.
+
+Kamoi et al. (TACL 2024) survey the field: "no prior work demonstrates
+successful self-correction with feedback from prompted LLMs" except in tasks
+exceptionally suited to it; "self-correction works well in tasks that can use
+reliable external feedback." Hence every rubric criterion is a check against
+the patched code, not a feeling about the fix.
+
+Anthropic's migration guidance names the mechanism for current models. Opus
+5: "per-prompt re-check phrasing - *'double-check your answer'*, *'re-verify
+before responding'* - triggers the same extra work. Note this **inverts a
+standard prompting best practice**". Its prompt block: "A follow-up question
+about your earlier work is not, by itself, a signal that you got something
+wrong - answer what was asked"; otherwise "a plain follow-up question can
+... trigger a re-audit of work that was correct."
+
+- <https://arxiv.org/abs/2310.01798>
+- <https://arxiv.org/abs/2310.13548> (§3.2 and Appendix A.4 in the HTML version)
+- <https://arxiv.org/abs/2502.08177>
+- <https://arxiv.org/abs/2505.23840>
+- <https://arxiv.org/abs/2406.01297>
+- Claude Code 2.1.316, bundled `claude-api` skill, `shared/model-migration.md` lines 1090-1137 (Opus 5 section)
+
+## Why the proposer and the tester are fresh-context subagents
+
+Actual authorship, not the belief of authorship, biases a judge, so a fresh
+context is the only lever a prompt has.
+
+Kozman et al. (NeurIPS 2026, 64,800 verification calls): "telling a model it
+wrote an answer moves false approval by under a point", but "a model that
+actually wrote the answer approves its own errors 11.9 percentage points more
+often." "Self-preference is belief persistence, so blinding cannot remove it."
+Chen et al. 2025 on verifiable tasks including code generation: stronger models
+"exhibit greater self-preference" and show more pronounced harmful
+self-preference when they do err, "which suggests they struggle more to
+recognize their own mistakes." Lu et al. 2025: "the benefits of verification
+decrease as the solver and verifier become more similar", and "verification
+across model families is more effective than either self-verification or
+verification within the same family."
+
+Anthropic's Fable 5.1 guidance states it as a rule: "Separate fresh-context
+verifier sub-agents tend to outperform self-critique." The Claude Code docs:
+"Each subagent starts with a fresh, isolated context window. It doesn't see
+your conversation history, the skills you've already invoked, or the files
+Claude has already read." Best practices: `/code-review` "reviews the diff in
+a fresh subagent that never saw your conversation. It isn't swayed by the
+reasoning that produced the code"; subagents pay off for "Getting a reviewer
+that hasn't seen how the code was written" and "a reviewer that can read but
+not edit." The cost, same page: "You get parallelism or a fresh pair of eyes
+out of it, but not a smarter answer."
+
+Agent frontmatter supports the design: `model` ("`sonnet`, `opus`, `haiku`,
+`fable`, a full model ID ... or `inherit`"), `effort` ("Overrides the session
+effort level ... `low`, `medium`, `high`, `xhigh`, `max`"), `tools`, and
+`omitClaudeMd` for agents "that take everything they need from the delegation
+prompt."
+
+Two cautions. Kozman et al.: "where the task admits no executable check,
+judges fail together rather than independently, so adding judges buys
+nothing"; "The binding constraint on agent verification is the signal the
+environment can supply, not the model reading it." So the tester re-traces and
+runs tests rather than opining. And Guey & Bougault 2026 found on a short
+instruction-following task that "authors reject verified-good fixes to their
+own drafts at essentially the same rate as fresh models" ("Effects smaller than
+~13 pp cannot be excluded"); the fresh-context gain is shown for code, not
+universally.
+
+- <https://neurips.cc/virtual/2026/178251>
+- <https://arxiv.org/abs/2504.03846>
+- <https://arxiv.org/abs/2512.02304>
+- <https://arxiv.org/abs/2606.20093>
+- `model-migration.md` line 1525 (Fable 5.1 long-running agent recommendations)
+- <https://code.claude.com/docs/en/sub-agents>
+- <https://code.claude.com/docs/en/best-practices>
+
+## Why the proposer rules on the finding before proposing
+
+A fix for a finding that is not real is a regression. Claude Code best
+practices: "A reviewer that's asked to find problems will always find
+*something*. If you fix every finding, you end up with extra abstraction
+layers and tests for cases that can't happen." The review `SOURCES.md` records
+reviewers flagging correct code 55-69% of the time without an evidence filter.
+
+Anthropic's claude-security `patch-generator` has the same gate: "When the
+flagged code is not exploitable as the finding describes at this revision,
+change nothing and name in `summary` the file and line that already defeat the
+exploit." Its `patch-verifier` re-derives it from the pre-change code: "name
+the file:line that does ... reject, say so with that evidence, and do not ask
+for a different fix. Doubt you cannot ground in such a line is not a
+refutation". The job: "A declined finding is the panel doing its job, not a
+failure to hide".
+
+- claude-security plugin (`claude-plugins-official` marketplace), `agents/patch-generator.md`
+- claude-security plugin, `agents/patch-verifier.md` (check 4)
+- `.../claude-security/skills/claude-security/jobs/suggest-patches.md`
+
+## Why two or more candidates, then a separate selection
+
+Strong repair systems since 2024 sample several patches and select; the
+ablations put most of the gain in selection.
+
+Agentless (Xia et al. 2024) "employs a simplistic three-phase process of
+localization, repair, and patch validation" and "samples multiple candidate
+patches per issue to maximize the chance of generating a correct fix." It
+generates "10 patches (1 greedy and 9 samples)" per edit-location set, "40
+patches per bug", normalizes them and "select[s] the patch with the highest
+number of occurrences". The ablation (§5.2): majority voting alone fixed 77
+issues; adding regression tests, 81; adding reproduction-test filtering, 96
+(32.00%), and "the performance plateaus at around 40 samples." CodeMonkeys
+(Ehrlich et al. 2025) "sample[s] many of these multi-turn trajectories for
+every issue to generate a collection of candidate edits" then "combine[s]
+voting using model-generated tests with a final multi-turn trajectory dedicated
+to selection"; selecting over an ensemble of existing top submissions "obtains
+a score of 66.2%" against 57.4% for its own candidates. DEI (Zhang et al.
+2024): "a DEI-guided committee of agents is able to surpass the best individual
+agent's performance by a large margin" (27.3% to 34.3% on SWE-bench Lite).
+
+The single-trajectory agents (SWE-agent's "agent-computer interface",
+AutoCodeRover's "code search ... leading to a program modification or patch",
+RepairAgent, which "freely interleaves gathering information about the bug,
+gathering repair ingredients, and validating fixes") report no one-versus-many
+ablation; the many-candidate systems do, and win on the same benchmarks.
+
+The evidence does not support majority voting as the selector. It needs ~40
+samples and hidden tests; one submitter (Trae) dropped it after "a decline in
+performance as the sampling space increased." With two or three candidates
+the selection step is a judge that re-traces each, which is the pressure
+tester.
+
+- <https://arxiv.org/abs/2407.01489> (HTML §3.3, §4, §5.2)
+- <https://arxiv.org/abs/2501.14723>
+- <https://arxiv.org/abs/2408.07060>
+- <https://arxiv.org/abs/2405.15793>
+- <https://arxiv.org/abs/2404.05427>
+- <https://arxiv.org/abs/2403.17134>
+- <https://arxiv.org/pdf/2506.17208> (leaderboard survey; the Trae note is from the search summary of it and was not verified in the paper)
+
+## Why the tester gets the candidates without the proposer's preference
+
+A judge handed a prior verdict anchors on it. Kapetanovic et al. 2026: "prior
+scores, even when included only as context metadata, anchor judgments"; on
+industry data with human labels, anchored metadata "blocks 48% of error
+corrections and flips 10.18% of correct judgments", and "Neither
+Chain-of-Thought nor a metadata-disregard warning reduces the total effect."
+Li et al. (DASFAA 2026) name "reference answer score bias" among the biases
+that "even the most advanced LLMs suffer from". The review SOURCES.md already
+records leading prompts flipping code-smell verdicts up to 72% of the time
+(arXiv 2607.10411). So the tester is told which candidates exist and the
+finding they answer, and is not told which one the proposer liked.
+
+The order of the candidates can carry the same signal. Zheng et al. (NeurIPS
+2023 Datasets and Benchmarks) list "position, verbosity, and self-enhancement
+biases" among the limits of LLM judges; Wang et al. (arXiv 2305.17926) found
+"the quality ranking of candidate responses can be easily hacked by simply
+altering their order of appearance in the context". A proposer that lists its
+favorite first hands the tester its preference by position. So the proposer
+orders candidates by two fields every candidate prints, Depth and then Size:
+those at the cause before those at a symptom, smaller first within each. An
+order computed from printed fields tells the tester nothing it cannot read,
+and whatever lean position gives runs the way the tester's pick already
+does, "at the cause over at the symptom" before "smaller over larger".
+Sorting by size alone would lean the wrong way, since the symptom patch is
+usually the smaller candidate. The bias only reaches the pick among
+candidates that all hold; whether each one holds rests on a re-trace and,
+where one exists, a test run.
+
+Anthropic's fix job applies the same rule to its own dispatches: "in no
+dispatch, in this round or the revision round, suggest a path, label, scope,
+verdict or tolerated gap of your own: the panel classifies what it finds." Its
+`scan-verifier` adds "Vote honestly; do not try to guess what the others will
+say or what the 'right' outcome is. A panel of three agreeable voters is worth
+nothing."
+
+Writer/critic separation itself: McAleese et al. (OpenAI, 2024) trained
+critics that "catch more bugs than human contractors paid for code review",
+with the caveat that "Critics can have limitations of their own, including
+hallucinated bugs that could mislead humans". The OpenAI blog post returned
+HTTP 403 and is cited without a quote. The tester ranks by re-trace, so a
+hallucinated objection has to survive one.
+
+- <https://arxiv.org/abs/2608.25869>
+- <https://arxiv.org/abs/2506.22316>
+- <https://arxiv.org/abs/2407.00215>
+- <https://arxiv.org/abs/2306.05685> (abstract)
+- <https://arxiv.org/abs/2305.17926> (abstract)
+- <https://openai.com/index/finding-gpt4s-mistakes-with-gpt-4/> (not opened)
+- `.../claude-security/agents/scan-verifier.md`, `.../jobs/suggest-patches.md`
+
+## The fix rubric: altitude, minimal, convention, named standard
+
+**Altitude.** The bundled `/code-review` has an angle for it: "Check that each
+change fixes the root cause at the right depth rather than patching a symptom
+with a fragile bandaid. Special cases layered on shared infrastructure are a
+sign the fix isn't deep enough - prefer the simpler, more general change to the
+underlying mechanism over adding special cases, and name that change." The
+claude-security generator: "Fix the root cause the finding describes, not the
+symptom". Kernel practice, measured: Bai et al. 2026 on 6,946 syzbot fixes
+found "a patch that silences a crash may still be rejected" for "addressing a
+symptom rather than the root cause", that "patch evolution exposes the gap
+between a plausible fix and a merge-worthy fix", that 78.3% of version
+transitions carried substantive reviewer feedback, and that only 3.1% of bugs
+were fixed in the same function as the crash. The proposer is told to trace to
+the cause before choosing where to patch.
+
+**Minimal, one thing.** Kernel `submitting-patches`: "Solve only one problem
+per patch." Google: "the right size for a CL is **one self-contained change**"
+that "addresses **just one thing**"; smaller changes are "Less likely to
+introduce bugs". The claude-security generator: "touch only what closing this
+one finding requires. No drive-by refactors, no formatting sweeps ... A
+reviewer must be able to read the diff and see exactly one idea". Google's
+pushback page is why the plan does not defer cleanups: "unless the developer
+does the clean up immediately after the present CL, it never happens."
+
+**Convention, cited neighbor; named standard, not "best practice".** Google:
+"If no other rule applies, the author should maintain consistency with the
+existing code"; "If there is no previous style, accept the author's";
+"Technical facts and data overrule opinions and personal preferences." Kernel:
+"Convince the reviewer that there is a problem worth fixing". An uncited
+"matches the codebase" is the "best practices" claim in other words, which the
+review SOURCES.md already names as the prompt this chain replaces.
+
+**No new failure.** The claude-security verifier's three claims are the
+template: TARGETED ("every hunk traces to the finding"), NO_NEW_VULNERABILITY
+("what can an attacker do with this change that they could not do before it?
+Read the callers of what moved"), BEHAVIOUR_UNCHANGED ("the same callers get
+the same results"), each with "one line of evidence - a `file:line`, a test
+name, or the specific thing you read"; "Do not say `CONFIDENT` to move the
+patch along."
+
+- Claude Code 2.1.316 binary, code-review prompt, "### Altitude" (offset ~159.28M)
+- <https://arxiv.org/abs/2604.03851> (HTML version for the quoted sentences)
+- <https://docs.kernel.org/process/submitting-patches.html>
+- <https://google.github.io/eng-practices/review/developer/small-cls.html>
+- <https://google.github.io/eng-practices/review/reviewer/looking-for.html>
+- <https://google.github.io/eng-practices/review/reviewer/standard.html>
+- <https://google.github.io/eng-practices/review/reviewer/pushback.html>
+- Google's Testing Blog "Code Health" posts were searched but no post on root cause vs workaround was found; none cited.
+
+## What Claude Code's own `--fix` does, and why this skill does not copy it
+
+Read out of the binary (Claude Code 2.1.316). The whole `--fix` path is one
+paragraph appended to the review prompt, run in the context that produced the
+findings, with no candidates, no second opinion, no post-apply verification:
+
+> The `--fix` flag was passed. After producing the findings list, apply the
+> findings to the working tree instead of stopping at the report: fix each one
+> directly - correctness bugs and reuse/simplification/efficiency cleanups
+> alike. Skip any finding whose fix would change intended behavior, require
+> changes well outside the reviewed diff, or that you judge to be a false
+> positive - note the skip rather than arguing with it. ... Finish with a
+> brief summary of what was fixed and what was skipped.
+
+The only post-apply step is a hand-off: "After the findings are reported (and
+applied, when --fix was passed) ... invoke `/verify` now - this review checks
+that the diff reads right; `/verify` checks that it runs right." `/simplify`
+shares the same apply paragraph. The three skip reasons and "note the skip
+rather than arguing with it" are worth keeping; the rest of `/ez:fix` is what
+`--fix` lacks.
+
+Anthropic's claude-security fix job is the richer local model: the generator
+"never judge[s its] own work: an independent verifier reviews your staged
+change and runs the tests after you return, and the human reading the
+resulting patch is the final gate"; "one revision round" on objections, then
+"A second objection declines the unit". `/ez:fix` keeps the split and the
+human gate (the plan) and hands the independent pass to `/ez:review`. Its
+revision round, like claude-security's, runs on objections: only when the
+tester picks nothing. A pick that held but differs from the proposer's
+preference goes to the plan as a disagreement instead. Re-asking the proposer
+about its own fix when nothing broke is the "Are you sure?" prompt from the
+first section, and it would cost two more agent runs at `xhigh`.
+
+- Claude Code 2.1.316 binary, offsets 301455829 ("## Applying fixes (--fix)") and 159285070 ("## After the review")
+- `.../claude-security/agents/patch-generator.md`, `patch-verifier.md`, `jobs/suggest-patches.md`
+
+## The fix record, and de-prescribing
+
+The record is not independently sourced. Nearest patterns: claude-security's
+fix job writes a per-finding decline note, "said as that and not as a failed
+fix"; the review `SOURCES.md` reads the previous report "only after the new
+findings are settled so it cannot anchor them." `/ez:review` reads the record
+to suppress, not to seed.
+
+The record is a section of the report it answers, not a file of its own. Each
+review replaces the whole report, so a `Fix record:` in it was written after
+that review, and a rerun can match it to the findings by number. An earlier
+design kept a separate, cumulative `ez-fix.md`, and two review rounds found
+the two files disagreeing. A `reopened` mark in the report outlived the fix
+the record called applied, so a rerun would re-rule patched code; and
+`/ez:pr`, which reads only the report, would put refuted findings in a PR
+body. With one file, every reader sees each ruling beside the finding it rules
+on. `/ez:commit` already edits the report's first line, so a sibling skill
+writing into it has precedent. The review numbers what it carries under **Not
+re-checked** on from its own findings, so numbers stay unique in a report, and
+carries each such finding's record with it. A finding whose ruling still holds
+travels as the ruling, and an `applied` line travels with its finding: a
+review at a lower level, or narrowed by its notes, did not look at the fix,
+and without the line `/ez:pr` would list a fixed finding as a hazard and
+`/ez:fix` would send it back to a proposer.
+
+Entries have two lifetimes because they say two different things. `planned`
+and `applied` are progress on one report and end with it: the next review
+re-reads the code, and an applied fix becomes resolved or reopened, or rides
+on with a finding that review did not re-check. `refuted`, `pre-existing`,
+and `dismissed` are rulings on the code, which a review leaning toward recall
+would raise again on every run. The review carries them under **Upheld**, as
+it carries findings it did not look at under **Not re-checked**, while two
+things hold. Their file is still in the review's scope, so a ruling lasts as
+long as the change it was about; on a branch that lives long, such as a
+default branch that takes work directly, rulings about committed code would
+otherwise ride forever. And the lines they quote still read the same. A
+ruling the review reopens retires with that run even when its lines still
+read the same, or the next run would uphold what this one overturned. A run
+its notes narrow, by switching code off or by targeting other paths or a
+range, carries the rulings it did not look at unchanged, as it carries the
+findings: it cannot tell whether their file has left the change, and retiring
+them would send a ruled finding back as open.
+
+A ruling quotes lines, not a SHA. In the usual flow the fixes and the code
+under review are uncommitted, so the SHA is the pre-change HEAD and every
+reviewed line postdates it. The first quote is the finding's own line, from
+the proposer's `SITE`. Anchored only on the deciding line, a refutation of a
+null dereference guarded at line 38 would also suppress a new, unguarded one
+at line 200, since line 38 still reads the same. The match also requires the
+first quote to read on one line of the file only. Copy-paste is the usual way
+a second instance appears, and a pasted line reads the same as its original;
+told apart by position instead, a copy pasted above the original would land
+near the recorded line number and inherit its ruling. A finding on a line the
+file genuinely repeats is raised again each round, which costs a ruling per
+round. A dismissal quotes only the finding's line, so it ends when the code it
+excused changes. The second quote is the line that decides a refutation, from
+the proposer's `EVIDENCE`, often a guard elsewhere: delete the guard and the
+finding's line is unchanged. Quotes come from the proposer, a dismissal's
+included when its finding went to one, so the proposer returns `SITE` with a
+refutation too. Only a dismissal in the notes, which goes to no agent, is read
+from the file, before this run's Phase 4 has moved any line, and found by its
+claim rather than its number, since an earlier run's fixes may have moved it.
+The session does not read the source, so a quote from its memory would be a
+paraphrase with nothing to compare against. When a quoted line changes, the
+match fails toward reopening: a reformatted line costs one more ruling, not a
+hidden bug.
+
+A rerun over the same review skips every finding the record has ruled on in a
+status other than `planned`. A proposer shown an applied finding sees the fix
+and refutes it, which would turn an entry the next review checks into one it
+suppresses, and hide an incomplete fix. An item the user did not approve stays
+`planned`. A larger fix offered as its own item shares its finding's line, so
+declining it leaves the line `planned`, or `applied` when the in-scope fix
+landed. While part of the finding stays open, the next review raises it again
+and the larger fix is offered again, so the remaining risk stays visible
+rather than being ruled away by a decision about scope. An earlier draft
+marked a declined larger fix `deferred` on that same line, which overwrote
+`applied` and made a rerun skip an in-scope fix nobody had applied. Each
+item's line turns `applied` as soon as the fix lands, so a run stopped by a
+failing test leaves the record true to the tree. Phase 4 first checks that the
+report still lists the findings Phase 0 read, under the same numbers: a review
+run between the plan and the reply renumbers the findings, and the plan's
+numbers would mark the wrong ones. It compares findings rather than looking
+for the lines Phase 3 wrote, because a refused write leaves no lines and the
+skill goes on after one.
+
+`/ez:pr` leaves out the findings the record rules on and keeps the rest. A
+finding nobody ruled on is still a hazard after others were fixed, so the
+report still counts, and the PR report says which fixes postdate it. Edits
+made by hand after a review still go unnoticed, as they did before `/ez:fix`.
+
+Fable 5.1 guidance: "Prompts and skills written for prior models are often too
+prescriptive for Claude Fable 5.1 and *reduce* output quality ... prefer
+stating the goal and constraints over enumerating the steps." Opus 5 "verifies
+its own work without being asked" and verification instructions "now cause
+over-verification". The design is a separation of roles with one rubric, not a
+step script; `SKILL.md` should stay at that altitude.
+
+- `model-migration.md` lines 1094, 1526
+
+## Dispatches name paths, and the tested diff is what lands
+
+Measured on the first smoke test (3 findings, Fable 5.1 session, 2026-11-02):
+the six pinned Opus 5.5 agents cost $1.17 together, and the session running
+the skill cost $3.54. About 40% of the session's 33.7K output tokens were
+dispatch prompts: the diff and the candidates pasted into each agent's prompt,
+about 7K characters per proposer and 11K to 13K per tester. Output is the
+priciest token class on every model ($50/MTok on Fable 5.1), and an agent can
+read the same text from the checkout at its own input rate. So a dispatch now
+names a base commit and paths, and the agents read for themselves. The
+candidates are still relayed through the session. The tester must not see the
+proposer's preference, and having the proposer write candidates to a file
+would turn a read-only agent into a writer and add a permission prompt per
+finding.
+
+Phase 4 applies the tester's diff with `git apply` when it still applies. In
+Agentless the patch that passes the tests is the patch submitted; in
+claude-security's fix job the verifier tests the generator's staged change
+itself. Re-typing a tested diff by hand brings back the drift the tester was
+there to rule out, and the risk grows on a cheaper session model. The by-hand
+path stays for amended, described, or drifted candidates.
+
+An approved larger fix goes back to a proposer and a tester before any of it
+lands. The plan offers it as the proposer's one-line `SCOPE` note. Applying
+that note by hand would make the session the untested author of the plan's
+largest change, the one most likely to break a caller, which is the failure
+in the first section. When the notes allow the larger fix up front, the
+proposer proposes it as its candidates and the tester checks them like any
+other.
+
+The larger fix replaces the smaller one rather than stacking on it. The
+smaller fix is the best candidate inside the change, marked for what it
+leaves open, so under the deeper fix it is a redundant patch at the symptom;
+and a proposer shown it finds the scenario handled and refutes the finding,
+as the record section describes. Nothing runs between the two turns, so
+landing it first protects nothing. The second proposer is told the finding
+stands and does not rule again: a fresh proposer already ruled, the user
+acted on that ruling, and a second ruling that disagreed would drop an
+approved fix on one sample. Proposing the larger fix as a full candidate in
+the first round would save the second round, but it would pay for a larger
+candidate, relayed through the session at its output rate, on every run that
+finds one, and most such offers are declined.
+
+The tester checks each diff in place with `git apply --check`, which "see[s]
+if the patch is applicable to the current working tree" and turns off
+applying; without `--index` it "applies the patch only to files", so
+untracked files count. A worktree is built only to run a test, and it has to
+hold the whole change: review and fix run before commit, so new files are
+usually untracked. `git diff` with no arguments compares the working tree
+with the index, so it misses staged work, and no diff shows untracked files.
+So the worktree gets `git diff HEAD --binary` plus each file `git ls-files
+--others --exclude-standard` lists; `--exclude-standard` applies
+".gitignore in each directory", so ignored dependency folders stay out.
+`git stash create` would build the snapshot in one step but takes only a
+message, and the stash page scopes untracked files to `push` and `save`.
+A fresh worktree also has no installed dependencies, so in many repos the
+test cannot run there anyway; the in-place check is what catches a diff that
+does not apply.
+
+All of it runs against the top level, which Phase 0 resolves with
+`git rev-parse --show-toplevel`. The git-apply manual: "When running from a
+subdirectory in a repository, patched paths outside the directory are
+ignored." Checked on Git for Windows 2.45.2: from a subdirectory, a patch to a
+top-level file that did not apply printed "Skipped patch" and exited 0 under
+`--check`, plain `git apply`, and `--cached` alike. The tester would pass a
+diff it never tested, and Phase 4 would report applied a patch that changed
+nothing. `ls-files --others` run there lists only that directory's files,
+relative to it.
+
+- <https://git-scm.com/docs/git-apply>
+- <https://git-scm.com/docs/git-ls-files>
+- <https://git-scm.com/docs/git-stash>
+
+## Why the record stays in the git directory
+
+All 13 headless `claude -p` test runs had the write of `ez-review.md` into the
+git directory refused as a sensitive path, even with `Write` allowed: a
+protected path needs a prompt, and headless mode cannot show one.
+Interactive sessions are different: the same write raises a permission prompt
+there and goes through in day-to-day use, and the failures seen were the Write
+tool's read-before-overwrite check, not permission refusals. Moving the files
+into the worktree would mean editing each repository's `.gitignore`, and commit
+`2621727` put them in each worktree's own git directory on purpose. They stay.
+The skills say plainly when a write is refused and never route around it
+through the shell, which the smoke test's session did.

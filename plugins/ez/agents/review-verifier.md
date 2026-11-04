@@ -67,5 +67,4 @@ No preamble. Exactly:
 VERDICT: CONFIRMED | PLAUSIBLE | REFUTED
 EVIDENCE: <the decisive path:line and what it shows, two or three sentences>
 SCENARIO: <for CONFIRMED or PLAUSIBLE, the trigger → the wrong result, sharpened from the candidate's; for PLAUSIBLE, what would confirm it>
-FIX: <one line, only when it is obvious; otherwise omit the line>
 ```

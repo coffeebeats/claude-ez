@@ -219,7 +219,10 @@ make room.
    `/ez:commit` left unresolved in `<git-dir>/ez-commit-plan.md`, and any
    finding listed in `<git-dir>/ez-review.md` whose path this branch changes
    (`git diff --name-only <target>...HEAD`), when the file is headed with this
-   branch or, for a stacked branch, with its parent. No hazard, no section.
+   branch or, for a stacked branch, with its parent. Leave out the findings its
+   `Fix record:` marks `refuted`, `pre-existing`, `dismissed`, or `applied`,
+   and the rulings under `Upheld:`, which are not findings.
+   No hazard, no section.
 3. `**Verified**` — **optional and rare.** CI reports itself, so this earns its
    place only for what CI cannot show: a manual run-the-thing check, a red check
    that is expected, an artifact CI owes. For a user-visible UI change, leave a
@@ -294,7 +297,8 @@ unchanged and the public API is narrower.
    is not this run's to delete.
 7. Report each URL and which CI checks will run. Don't poll CI unless asked.
    When Phase 2 found no review that counts for a PR, say so in one line outside
-   the body. A review run in another worktree is not visible from this one.
+   the body, and when the one it used has fixes marked `applied`, say that they
+   postdate it. A review run in another worktree is not visible from this one.
    For stacked PRs, name the stack they joined, and when `gh stack view` did
    not track the branch, say that `gh stack checkout <PR>` adopts the stack
    locally for `gh stack rebase` and `sync`.

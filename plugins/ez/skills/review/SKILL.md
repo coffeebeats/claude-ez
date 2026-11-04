@@ -35,8 +35,8 @@ does not. Name it and stop rather than running.
 
 - NEVER edit the working tree, stage, commit, switch branches, or touch a
   remote. The one file you write is the report at `<git-dir>/ez-review.md`
-  (Phase 0 resolves `<git-dir>`). Fixing is the user's call, after they have
-  read the report.
+  (Phase 0 resolves `<git-dir>`). Fixing belongs to `/ez:fix`, after the user
+  has read the report.
 - NEVER post to the PR, open an issue, or comment anywhere. The report goes to
   the user, in the terminal.
 - Every finding cites a `path:line` and carries a **failure scenario** — the
@@ -379,13 +379,7 @@ asymmetric in tests. Up to eight new candidates, each checked as in Phase 3.
 If there is nothing, say nothing — the sweep does not pad.
 
 ### Phase 5 — Report
-1. Rank by severity: correctness and reliability outrank performance,
-   simplicity, and fit when the cap forces a cut; within a dimension,
-   CONFIRMED outranks PLAUSIBLE, and a failure users would hit outranks one
-   they would not.
-2. **At most the level's cap** unless the notes asked for every finding. Say
-   how many were cut and from which dimension.
-3. **Reconcile with the previous run.** If `<git-dir>/ez-review.md` exists and
+1. **Reconcile with the previous run.** If `<git-dir>/ez-review.md` exists and
    its heading names this branch, read it now — after your own findings are
    settled, never before, so it cannot anchor them. Mark each of its findings,
    including those it carried under **Not re-checked**,
@@ -397,6 +391,29 @@ If there is nothing, say nothing — the sweep does not pad.
    re-checked**, and step 5 carries it forward. Mark this run's remaining
    findings **new**. A file headed with another branch is stale; ignore and
    overwrite it.
+
+   Then the rulings, still after your findings are settled: each entry of
+   that report's `Fix record:` marked `refuted`, `pre-existing`, or
+   `dismissed`, and each ruling it carried under `Upheld:`. A ruling quotes
+   the line its finding sat on and, unless it is a dismissal, the line that
+   decided it. A finding of this run is the ruling's when it names the same
+   mechanism on a line that reads as the first quote, and no other line of
+   that file reads the same: a pasted copy is a new instance, not the one
+   ruled on. It is dropped and counted as **upheld** while the deciding line
+   still reads as quoted. When that line has changed, or you can quote what
+   the evidence missed, it stays, marked **reopened** with what changed or
+   what was missed, in place of new or still open. A user's dismissal counts
+   the way intent in the PR body does and is not re-argued. An entry marked
+   `applied` is evidence for **resolved**; read the line to confirm, and if
+   the scenario still holds, the finding stays, marked **reopened** (the fix
+   did not close it). `planned` entries are progress on that report and end
+   with it. The record suppresses; it never seeds.
+2. Rank by severity: correctness and reliability outrank performance,
+   simplicity, and fit when the cap forces a cut; within a dimension,
+   CONFIRMED outranks PLAUSIBLE, and a failure users would hit outranks one
+   they would not.
+3. **At most the level's cap** unless the notes asked for every finding. Say
+   how many were cut and from which dimension.
 4. Print the report in this shape and no other:
 
    ```markdown
@@ -407,13 +424,15 @@ If there is nothing, say nothing — the sweep does not pad.
 
    1. `path/to/file.ext:123` · correctness · CONFIRMED · new
       <one-sentence claim>. Fails when <scenario → wrong result>.
-      Fix: <one line, only when it is obvious>.
    2. `path/to/other.ext:40` · reliability · PLAUSIBLE · still open (was #3)
       <claim>. <scenario>. Confirm by <what the check named>.
+   3. `path/to/third.ext:88` · correctness · CONFIRMED · reopened (<what changed>)
+      <claim>. Fails when <scenario → wrong result>.
 
    Pre-existing, not counted: `path:line` — <one line>.          (if any)
    Previous run: 2 resolved, 1 still open, 1 withdrawn (<why>),
    1 not re-checked.                                              (if any)
+   Rulings: 2 upheld, 1 reopened, 1 retired.                      (if any)
    Clean: <the angles that ran and produced nothing, as one line>.
    Skipped: <angles and code the notes switched off or left alone>. (if any)
    ```
@@ -426,13 +445,28 @@ If there is nothing, say nothing — the sweep does not pad.
    the verdict, no code blocks longer than three lines.
 5. Write the same report to `<git-dir>/ez-review.md`, the invoking checkout's
    even when the code was read from a throwaway worktree, headed with the
-   branch, head SHA, and level, replacing whatever was there. Append every
-   finding step 3 marked not re-checked, copied unchanged, under a
+   branch, head SHA, and level, replacing whatever was there; Read it first
+   if step 1 did not, since the Write tool refuses to overwrite a file this
+   session has not read. Append every finding step 1 marked not re-checked,
+   copied unchanged but numbered on from this run's last, under a
    `Not re-checked:` heading, so a narrowed run never erases what it did not
-   look at. It stays out of `git status`. Remove any worktree Phase 0 created.
+   look at; leave out one whose ruling the next sentence carries, since the
+   ruling stands for it. Then append under `Upheld:` every ruling that still
+   holds, with its file, mechanism, status, quotes, and a dismissal's reason:
+   one this run did not reopen, whose file is in this run's scope, and whose
+   quoted lines still read as quoted, the first on one line of its file only,
+   whether or not this run raised its finding; and, unchanged, one in code
+   this run did not look at because the notes switched it off or targeted
+   other paths or another range. The rest retire, so a ruling lasts as long
+   as the change it was about. Last, when a finding carried as not re-checked
+   has a `Fix record:` line marked `applied`, copy that line, renumbered with
+   the finding, under a `Fix record:` heading, so `/ez:fix`, `/ez:commit`, and
+   `/ez:pr` still read that fix as unreviewed. The file stays out of
+   `git status`. Remove any worktree Phase 0 created.
 6. Close with one line naming the next step. After a first run with findings:
-   fix what is CONFIRMED and whatever PLAUSIBLE the user judges real, then run
-   `/ez:review` once more so step 3 marks each prior finding and catches what
+   `/ez:fix`, which rules on each finding in a fresh context, proposes and
+   pressure-tests the fix, and applies what the user approves; then
+   `/ez:review` once more so step 1 marks each prior finding and catches what
    the fixes introduced. After that second run: `/ez:commit` when the tree is
    dirty, `/ez:pr` when the branch is committed and clean, with `/ez:review
    max` once before a merge nobody else will read. When this run marked any

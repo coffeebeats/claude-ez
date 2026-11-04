@@ -200,3 +200,68 @@ tests that exact phrasing; the sycophancy and over-critique results above are
 the nearest evidence. The skill keeps all three questions as dimensions and
 replaces the framing with the bar, the failure scenario requirement, the
 per-level lean, and the explicit statement that an empty report is a result.
+
+## The angles were measured against a single pass on Fable 5.1
+
+Anthropic's Fable 5.1 migration notes say prompts and skills written for prior
+models "are often too prescriptive for Claude Fable 5.1 and *reduce* output
+quality" and recommend "stating the goal and constraints over enumerating the
+steps", with an A/B. The bundled `/code-review` table has no Fable 5.1 or
+Opus 5.5 row as of Claude Code 2.1.316, so both fall to the angles recipe
+unmeasured; the one measured row for a recent Opus, Opus 5 at `medium` and
+`high`, is a single "careful senior engineer" pass with no angles.
+
+Measured on 2026-11-02: `/ez:review` as written against a variant whose
+Phase 2 is one senior-engineer pass over the five dimensions and the bar, with
+the sweep removed and everything else — hard rules, bar, verdict standard,
+report shape, reconciliation — unchanged. Headless `claude -p` on Fable 5.1 at
+the default level, two planted-bug fixtures (seven each: an off-by-one with
+its tests edited to match, a removed guard with its test deleted, a cross-file
+signature break, swallowed errors, a mutable default, a late-binding closure,
+a lock whose scope shrank, a flipped config default, a skipped test, a
+duplicated helper, `print` against a logging rule), three trials per cell.
+
+| Shape | Planted found | Unplanned real | Borderline | Mean cost | Mean time |
+|---|---|---|---|---|---|
+| Angles A–K, dedup, check, sweep | 42 of 42 | 11 | 6 | $2.63 | 365 s |
+| One pass, dedup, check | 42 of 42 | 8 | 6 | $2.18 | 286 s |
+
+Recall was identical and the fixtures were too easy to separate it. The
+angles found a few more real things nobody planted (a `sorted()` on a JSON
+array, a status field that can only ever be 2xx, a missing test for the new
+function) at about a fifth more cost. That is not evidence the structure
+hurts this model, so the shape stays; it is also not evidence it is needed,
+so a harder fixture is the next measurement if cost becomes the concern. The
+harness and fixtures are kept outside the repo.
+
+The `Fix:` line left the report in the same change. It was the one output
+nothing verified, and a fix floated by the reviewer anchors whoever fixes
+next; `/ez:fix` owns fixing, and `skills/fix/SOURCES.md` has the evidence.
+
+- Claude Code 2.1.316, bundled `claude-api` skill, `shared/model-migration.md`, "De-prescribe migrated prompts and skills"
+
+## Haiku 5.5, Sonnet 5.5, and Opus 5.5 on the same fixtures
+
+Measured 2026-11-03: a bare `/ez:review` (level `xhigh`) on the live plugin
+against the two fixtures above, one run per fixture at session effort `high`
+and one at `xhigh`, so four runs per model.
+
+| Session model | Planted found | Unplanned real | Borderline | Cost per run, high / xhigh | Time per run, high / xhigh |
+|---|---|---|---|---|---|
+| Haiku 5.5 | 28 of 28 | 6 | 7 | $0.03 / $0.04 | 150 s / 215 s |
+| Sonnet 5.5 | 26 of 28 | 5 | 3 | $0.26 / $0.36 | 76 s / 123 s |
+| Opus 5.5 | 28 of 28 | 3 | 0 | $0.45 / $0.57 | 73 s / 110 s |
+| Fable 5.1 at `xhigh`, full shape (above, 6 runs) | 42 of 42 | 11 | 6 | $2.63 | 365 s |
+
+Sonnet missed the same bug both times, the file reopened per metric in
+`flush`; at `xhigh` it saw it and called it a micro-cost. One Haiku run caught
+the shared-dict bug only as its caller-mutation half. Raising effort from
+`high` to `xhigh` cost about 30% more and changed no model's recall. The models
+differed in precision rather than recall: Opus folded related problems into
+one finding and raised no borderline ones, and Haiku raised the most. In the
+`high` runs Haiku and Sonnet put a `Fix:` line on findings although the report
+shape has none; Opus never did, and no `xhigh` run did. No run used agents,
+which for Haiku and Sonnet ignores the **Smaller models** rule; Sonnet said
+so, Haiku did not. In the four runs checked, every claimed confirming scratch
+call ran and printed what the report said. The fixtures are small and every
+model nearly saturates them, so they cannot show a recall gap on subtler bugs.
