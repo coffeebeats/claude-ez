@@ -1,9 +1,9 @@
 # claude-ez
 
-A private Claude Code marketplace carrying one plugin, `ez` — seven skills that
-take a change from critical review through working tree to open pull request in
-any git repository and any language. `plugins/ez/README.md` documents the chain itself and the
-per-repository `.claude/ez.json` schema.
+A private Claude Code marketplace carrying one plugin, `ez` — eight skills that
+take a change from a planned direction through critical review to open pull
+request in any git repository and any language. `plugins/ez/README.md`
+documents the chain itself and the per-repository `.claude/ez.json` schema.
 
 ```
 .claude-plugin/marketplace.json
@@ -22,9 +22,9 @@ claude plugin marketplace add git@github.com:coffeebeats/claude-ez.git
 claude plugin install ez@claude-ez
 ```
 
-Verify with `claude plugin details ez` — seven skills, four agents, no hooks.
-`/ez:review`, `/ez:fix`, `/ez:comments`, `/ez:commit`, `/ez:pr`, `/ez:publish`,
-and `/ez:no-ai-slop` are then available everywhere.
+Verify with `claude plugin details ez` — eight skills, seven agents, no hooks.
+`/ez:plan`, `/ez:review`, `/ez:fix`, `/ez:comments`, `/ez:commit`, `/ez:pr`,
+`/ez:publish`, and `/ez:no-ai-slop` are then available everywhere.
 
 Turn on auto-update, which is off by default for a marketplace Anthropic does
 not run and which adding the marketplace never turns on: set `"autoUpdate":

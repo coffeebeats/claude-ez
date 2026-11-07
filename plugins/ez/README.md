@@ -1,11 +1,13 @@
 # ez — a portable commit chain for Claude Code
 
-Seven skills that carry a change from working tree to open pull request, in any
-git repository and any language. Nothing here is language-specific; per-repository
-detail lives in that repo's own `.claude/ez.json` and `.claude/rules/comments.md`.
+Eight skills that carry a change from a chosen direction to open pull request,
+in any git repository and any language. Nothing here is language-specific;
+per-repository detail lives in that repo's own `.claude/ez.json` and
+`.claude/rules/comments.md`.
 
 ```
 .claude-plugin/plugin.json
+skills/plan/              map what exists, propose and evaluate directions, build the one picked
 skills/review/            critically review a change; findings only, never edits
 skills/fix/               rule on each finding, propose and pressure-test the fix, apply on approval
 skills/comments/          audit and trim the comments in changed files
@@ -17,14 +19,30 @@ agents/review-finder.md   read-only finder /ez:review max fans out to, one per a
 agents/review-verifier.md read-only verifier /ez:review max runs on each candidate
 agents/fix-proposer.md    read-only proposer /ez:fix runs per finding: verdict first, then candidates
 agents/fix-tester.md      read-only tester /ez:fix runs per finding: breaks candidates, picks one
+agents/plan-scout.md      read-only scout /ez:plan runs per focus: maps what exists, never proposes
+agents/plan-proposer.md   read-only proposer /ez:plan runs once a round: directions against the bar
+agents/plan-evaluator.md  read-only evaluator /ez:plan runs once a round: own reuse search, verdicts, rank
 ```
 
 ## The chain
 
 Every step is user-invoked; the chain never advances on its own, except
-through `/ez:publish`, which the user invokes to run steps 3 to 5 in a row.
+through `/ez:publish`, which the user invokes to run steps 4 to 6 in a row.
 
-1. `/ez:review [level] [notes]` — critically reviews the change for
+1. `/ez:plan <issue | problem> [notes]` — plans the work before any of it is
+   built. Read-only scouts map what already exists in the codebase, and in
+   published references when the problem needs them. A fresh-context agent
+   proposes one to three directions that differ in mechanism, against a
+   written bar (solves it, builds on what exists, at the right layer, as
+   small as done allows, breaks nothing, decides only what it must,
+   verifiable). A second fresh agent, which never sees the scouts' map,
+   searches the code on its own and judges each direction; when none passes,
+   one more round runs. It prints the directions that pass, ranked, and
+   stops. On the pick it writes the plan to `<git-dir>/ez-plan.md` and builds
+   it in the same session. Only the user can invoke it, since every run pays
+   for several agents. `skills/plan/SOURCES.md` records the evidence behind
+   its shape.
+2. `/ez:review [level] [notes]` — critically reviews the change for
    correctness, reliability, performance, simplicity, and fit with the
    codebase, and prints a ranked list of findings, each checked and backed by
    the scenario in which the code misbehaves. The level comes first. It is
@@ -38,7 +56,7 @@ through `/ez:publish`, which the user invokes to run steps 3 to 5 in a row.
    last run; a third run is not evidence, since a review that may not drop
    on uncertainty rarely returns nothing on correct code.
    `skills/review/SOURCES.md` records the evidence behind its shape.
-2. `/ez:fix [selection] [notes]` — takes the review's findings and, per
+3. `/ez:fix [selection] [notes]` — takes the review's findings and, per
    finding, has a fresh-context agent rule on whether it is real and propose
    two or more fixes against a written bar (resolves the scenario, breaks
    nothing, matches a cited neighbor, names a standard only when one exists,
@@ -51,23 +69,23 @@ through `/ez:publish`, which the user invokes to run steps 3 to 5 in a row.
    result. `skills/fix/SOURCES.md` records the evidence behind its shape,
    including why the judgment is never left to the context that wrote the
    fix.
-3. `/ez:comments [files]` — audits and rewrites comments in the changed files to
+4. `/ez:comments [files]` — audits and rewrites comments in the changed files to
    the house style. Defaults to everything dirty against `HEAD`.
-4. `/ez:commit` — sorts the tree and lands it as an ordered series of one-line
+5. `/ez:commit` — sorts the tree and lands it as an ordered series of one-line
    conventional commits, one slice at a time. Pass `manual` to have it stage each
    slice and hand the commit back.
-5. `/ez:pr [target]` — pushes the branch and opens a PR titled as a one-line
+6. `/ez:pr [target]` — pushes the branch and opens a PR titled as a one-line
    conventional commit. Pass `manual` to approve the title and body before
    anything reaches the remote.
 
-`/ez:publish [target]` runs steps 3 to 5 in one go once review and fixes are
+`/ez:publish [target]` runs steps 4 to 6 in one go once review and fixes are
 done. It runs `/ez:comments` over every file the branch touches, old comments
 included, and `/ez:no-ai-slop` over the docs prose the branch wrote, then
 `/ez:commit` and `/ez:pr`. Each step keeps its own stops, so `/ez:commit` still
 waits for a nod on its plan. Its arguments pass to `/ez:pr`. Only the user can
 invoke it, since it pushes.
 
-`/ez:review` also runs usefully after step 5, against the open PR, or against
+`/ez:review` also runs usefully after step 6, against the open PR, or against
 someone else's PR by number, and again after `/ez:fix`, where it reconciles
 against its last report, including the record `/ez:fix` added to it.
 
@@ -110,15 +128,16 @@ before staging anything.
 
 ## Install
 
-Requires `gh` authenticated for `/ez:pr`, and for `/ez:review` to find a
-branch's PR; without it the review falls back to the default branch as base.
+Requires `gh` authenticated for `/ez:pr`, for `/ez:plan` to read an issue, and
+for `/ez:review` to find a branch's PR; without it the review falls back to the
+default branch as base.
 
 ```sh
 claude plugin marketplace add git@github.com:coffeebeats/claude-ez.git
 claude plugin install ez@claude-ez
 ```
 
-Verify with `claude plugin details ez`, which should list seven skills, four
+Verify with `claude plugin details ez`, which should list eight skills, seven
 agents, and no hooks.
 
 ## Turning it off in one repository
