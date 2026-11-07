@@ -1,6 +1,6 @@
 # ez — a portable commit chain for Claude Code
 
-Six skills that carry a change from working tree to open pull request, in any
+Seven skills that carry a change from working tree to open pull request, in any
 git repository and any language. Nothing here is language-specific; per-repository
 detail lives in that repo's own `.claude/ez.json` and `.claude/rules/comments.md`.
 
@@ -11,6 +11,7 @@ skills/fix/               rule on each finding, propose and pressure-test the fi
 skills/comments/          audit and trim the comments in changed files
 skills/commit/            land the tree as ordered atomic commits
 skills/pr/                push the branch and open the PR
+skills/publish/           comments, prose, commit, and PR in one run
 skills/no-ai-slop/        prose judgment; vendored, see UPSTREAM.md
 agents/review-finder.md   read-only finder /ez:review max fans out to, one per angle
 agents/review-verifier.md read-only verifier /ez:review max runs on each candidate
@@ -20,7 +21,8 @@ agents/fix-tester.md      read-only tester /ez:fix runs per finding: breaks cand
 
 ## The chain
 
-Every step is user-invoked; the chain never advances on its own.
+Every step is user-invoked; the chain never advances on its own, except
+through `/ez:publish`, which the user invokes to run steps 3 to 5 in a row.
 
 1. `/ez:review [level] [notes]` — critically reviews the change for
    correctness, reliability, performance, simplicity, and fit with the
@@ -57,6 +59,13 @@ Every step is user-invoked; the chain never advances on its own.
 5. `/ez:pr [target]` — pushes the branch and opens a PR titled as a one-line
    conventional commit. Pass `manual` to approve the title and body before
    anything reaches the remote.
+
+`/ez:publish [target]` runs steps 3 to 5 in one go once review and fixes are
+done. It runs `/ez:comments` over every file the branch touches, old comments
+included, and `/ez:no-ai-slop` over the docs prose the branch wrote, then
+`/ez:commit` and `/ez:pr`. Each step keeps its own stops, so `/ez:commit` still
+waits for a nod on its plan. Its arguments pass to `/ez:pr`. Only the user can
+invoke it, since it pushes.
 
 `/ez:review` also runs usefully after step 5, against the open PR, or against
 someone else's PR by number, and again after `/ez:fix`, where it reconciles
@@ -109,7 +118,7 @@ claude plugin marketplace add git@github.com:coffeebeats/claude-ez.git
 claude plugin install ez@claude-ez
 ```
 
-Verify with `claude plugin details ez`, which should list six skills, four
+Verify with `claude plugin details ez`, which should list seven skills, four
 agents, and no hooks.
 
 ## Turning it off in one repository

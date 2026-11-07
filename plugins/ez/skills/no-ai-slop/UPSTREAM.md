@@ -24,7 +24,8 @@ sit under the `ez` chain. Vendored rather than installed with
   author persona, keeping upstream's instruction for genuinely authored prose.
 - Replaced the em dash rule with a budget of one per paragraph in a PR body and
   none in a short comment.
-- Added "Invoked from another skill" for `/ez:comments` and `/ez:pr`.
+- Added "Invoked from another skill" for `/ez:comments`, `/ez:pr`, and
+  `/ez:publish`.
 - Dropped the audience-and-venue question, which the calling skill already fixes.
 - Dropped upstream's colon-case and mandated-repetition eval checks, and added a
   carve-outs section.

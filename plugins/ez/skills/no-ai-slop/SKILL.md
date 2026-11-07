@@ -224,9 +224,9 @@ two-sentence sections. Format should follow the content, not decorate it.
 
 ## Invoked from another skill
 
-`/ez:comments` and `/ez:pr` call this skill as a step rather than as a command,
-so steps 1, 2, 4, and 5 run unchanged and step 6 is replaced by the caller's own
-format.
+`/ez:comments`, `/ez:pr`, and `/ez:publish` call this skill as a step rather
+than as a command, so steps 1, 2, 4, and 5 run unchanged and step 6 is replaced
+by the caller's own format.
 
 - **From `/ez:comments`,** run detect over the prose inside each comment, after
   the repo's linter and before editing. Fold each finding into that skill's audit
@@ -236,6 +236,9 @@ format.
 - **From `/ez:pr`,** run edit over the drafted title and body before either is
   printed. Return the edited body only; the What changed section is dropped,
   since the printed body is itself the record.
+- **From `/ez:publish`,** run edit over the docs a branch changes, limited to
+  the passages it added or changed, and apply the result in place. Print one
+  line per file naming what changed instead of the full draft.
 
 ## Provenance
 
