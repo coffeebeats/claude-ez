@@ -26,8 +26,10 @@ agents/plan-evaluator.md  read-only evaluator /ez:plan runs once a round: own re
 
 ## The chain
 
-Every step is user-invoked; the chain never advances on its own, except
-through `/ez:publish`, which the user invokes to run steps 4 to 6 in a row.
+The chain never advances on its own. The model may start `/ez:plan` when it
+sets out to plan work, and the run stops for the user's pick. Every later step
+runs when the user asks for it, or through `/ez:publish`, which the user
+invokes to run steps 4 to 6 in a row.
 
 1. `/ez:plan <issue | problem> [notes]` — plans the work before any of it is
    built. Read-only scouts map what already exists in the codebase, and in
@@ -39,9 +41,9 @@ through `/ez:publish`, which the user invokes to run steps 4 to 6 in a row.
    searches the code on its own and judges each direction; when none passes,
    one more round runs. It prints the directions that pass, ranked, and
    stops. On the pick it writes the plan to `<git-dir>/ez-plan.md` and builds
-   it in the same session. Only the user can invoke it, since every run pays
-   for several agents. `skills/plan/SOURCES.md` records the evidence behind
-   its shape.
+   it in the same session. The model may invoke it as well as the user. Every
+   run pays for several agents, but nothing is built until the user picks.
+   `skills/plan/SOURCES.md` records the evidence behind its shape.
 2. `/ez:review [level] [notes]` — critically reviews the change for
    correctness, reliability, performance, simplicity, and fit with the
    codebase, and prints a ranked list of findings, each checked and backed by
@@ -74,7 +76,8 @@ through `/ez:publish`, which the user invokes to run steps 4 to 6 in a row.
    the house style. Defaults to everything dirty against `HEAD`.
 5. `/ez:commit` — sorts the tree and lands it as an ordered series of one-line
    conventional commits, one slice at a time. Pass `manual` to have it stage each
-   slice and hand the commit back.
+   slice and hand the commit back. It prints its plan and commits without
+   waiting for a nod, and stops only for a stack split or a judgment call.
 6. `/ez:pr [target]` — pushes the branch and opens a PR titled as a one-line
    conventional commit. Pass `manual` to approve the title and body before
    anything reaches the remote.
@@ -82,9 +85,8 @@ through `/ez:publish`, which the user invokes to run steps 4 to 6 in a row.
 `/ez:publish [target]` runs steps 4 to 6 in one go once review and fixes are
 done. It runs `/ez:comments` over every file the branch touches, old comments
 included, and `/ez:no-ai-slop` over the docs prose the branch wrote, then
-`/ez:commit` and `/ez:pr`. Each step keeps its own stops, so `/ez:commit` still
-waits for a nod on its plan. Its arguments pass to `/ez:pr`. Only the user can
-invoke it, since it pushes.
+`/ez:commit` and `/ez:pr`. Each step keeps its own stops. Its arguments pass
+to `/ez:pr`. Only the user can invoke it, since it pushes.
 
 `/ez:review` also runs usefully after step 6, against the open PR, or against
 someone else's PR by number, and again after `/ez:fix`, where it reconciles

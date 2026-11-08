@@ -11,10 +11,11 @@ description: >-
   round when none passes. Prints the directions that pass, ranked, with the
   evaluator's conditions, and stops for the user to pick one; on the pick it
   writes the plan to the checkout's git directory and starts building it in
-  the same session. Works in any git repository and any language. Invoked by
-  the user via /ez:plan.
+  the same session. Works in any git repository and any language. Use this
+  when a change needs its direction chosen before it is built, not for one
+  whose fix is already clear — invoked by the user via /ez:plan, or by the
+  model, outside plan mode, to plan work rather than build its first idea.
 argument-hint: "<#issue | issue URL | problem> [notes: constraints, preferences, what is out of scope]"
-disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob, Agent, Write, Edit
 ---
 
@@ -119,6 +120,17 @@ ground among robustness, delivery speed, and reliability.
   whatever length it takes.
 - With no argument, the problem is the one this conversation has been about,
   when one has been stated. Otherwise ask what to plan and stop.
+
+When you invoke this skill yourself, pass the issue or the problem in the
+user's own words, and as notes what the user said about constraints and
+preferences. An approach you formed before invoking it is not a preference:
+leave it out of the argument, the frame, and every dispatch. Keeping the first
+idea from steering the plan is what the skill is for.
+
+When the session is in Claude Code's plan mode, stop before Phase 0. Say that
+this skill writes its plan file and builds the pick in this session, both of
+which plan mode forbids, and that the user can leave plan mode and run
+`/ez:plan` again.
 
 Read the notes, and a described problem, for three things and say which you
 found:

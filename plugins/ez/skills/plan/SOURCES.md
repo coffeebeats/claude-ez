@@ -319,19 +319,42 @@ with stated objections, and the second has to answer each one.
 - <https://arxiv.org/abs/2311.17371> (abstract)
 - <https://www.anthropic.com/engineering/harness-design-long-running-apps>
 
-## Only the user can invoke it
+## Who can invoke it
 
-A run sends up to four scouts and two Opus agents, four with a second round,
-and a pick starts building. Left open to the model, a passing question about
-how to approach something could start that run. So the skill sets
-`disable-model-invocation`, which the 2.1.319 skill frontmatter schema
-describes as "If true, the model cannot invoke this via the Skill tool; only
-users can type the slash command." `/ez:publish` sets it for the same kind of
-reason, since it pushes. The Claude Code skills docs recommend it for "actions
-you want to invoke directly with `/skill-name` rather than letting Claude
-decide when to run them."
+The skill first set `disable-model-invocation`, which the 2.1.319 skill
+frontmatter schema describes as "If true, the model cannot invoke this via the
+Skill tool; only users can type the slash command." The worry was cost. A run
+sends up to four scouts and two Opus agents, four with a second round, and a
+passing question about how to approach something could start one. The Claude
+Code skills docs recommend the flag for "actions you want to invoke directly
+with `/skill-name` rather than letting Claude decide when to run them."
 
-- Claude Code 2.1.319 binary, skill frontmatter schema
+On 2026-11-08 the user lifted it, so the model can run the skill when it sets
+out to plan work. Four things bound what a run the model starts can cost. The
+description says when to use the skill and that a change whose fix is already
+clear does not need it. Phase 3 asks before the proposer and evaluator run when
+the maps show the problem already solved or the frame already names its fix.
+Nothing is built until the user picks a direction, so such a run spends
+agents but never changes the tree on its own. And in plan mode the run stops
+before Phase 0. `/ez:publish` keeps the flag, since it pushes.
+
+The plan-mode stop refuses rather than calling `ExitPlanMode`. A run writes
+this skill's plan file to the git directory and builds the pick, and plan mode
+forbids both. The 2.1.319 reminder says "you MUST NOT make any edits (with the
+exception of the plan file mentioned below), run any non-readonly tools", and
+the file it exempts is plan mode's own plan file, not this skill's. In some
+sessions the run cannot leave plan mode at all. The plan-mode instructions for a session without `ExitPlanMode` say "You
+cannot leave plan mode yourself, and the user's approval alone does not end
+it: to have the plan carried out, the user changes this session's permission
+mode". Only the user can end it there, so the skill stops, says why, and
+leaves rerunning `/ez:plan` to the user.
+
+A model that invokes the skill has often formed an idea already. **Inputs**
+keeps that idea out of the argument and every dispatch, for the anchoring
+reason the evaluator section gives: a judge handed a prior answer anchors on
+it.
+
+- Claude Code 2.1.319 binary: skill frontmatter schema, plan-mode reminder (offset ~302.959M), plan-mode instructions without `ExitPlanMode` (offset ~302.960M)
 - <https://code.claude.com/docs/en/skills>
 
 ## Models

@@ -30,10 +30,10 @@ in its place and carry on with the next step.
 - Each step runs as its own skill, through the Skill tool, with its own hard
   rules intact. NEVER merge, never force-push, and never commit or push except
   through `/ez:commit` and `/ez:pr`.
-- Keep every stop a step makes. `/ez:commit` waits for a nod on its plan and for
-  approval of a stack split; `/ez:pr manual` holds the push. Wait there, then
-  resume this workflow at the step after the one that stopped. Being a shorthand
-  is not permission to answer a step's question for the user.
+- Keep every stop a step makes. `/ez:commit` waits for approval of a stack split
+  and stops for its judgment calls; `/ez:pr manual` holds the push. Wait there,
+  then resume this workflow at the step after the one that stopped. Being a
+  shorthand is not permission to answer a step's question for the user.
 - A step that fails without handing the user a choice ends the run: a preflight
   refusal, a rejected push. Report where it stopped and what is left, and never
   jump ahead to the push. A failing gate in `/ez:commit` is one of its stops:

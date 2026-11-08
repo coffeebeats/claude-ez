@@ -144,8 +144,10 @@ slice it touches in Phase 4:
 - **Weakened gates** — a build, test, or CI edit that removes, skips, or softens
   a check. It lands as its own commit, never inside a feature slice, and the
   user rules on it.
-- **Missing tests** — new behavior with no test. Tests ride with the code they
-  cover (Phase 3), so name the gap before the plan is set.
+- **Missing tests** — new behavior with no test, in a layer the repo already
+  tests; a repo that tests nothing of the kind gets no flag. Tests ride with
+  the code they cover (Phase 3), so name the gap and ask whether to write the
+  test now or commit without it, before the plan is set.
 
 Present the groups and any flags BEFORE proposing how to commit.
 
@@ -175,7 +177,10 @@ not a deferred test.
 **Coverage check:** before executing, confirm the plan accounts for every changed
 and untracked hunk **exactly once** — nothing dropped, nothing assigned to two
 commits. Show the user the change→commit mapping and reconcile it against the
-Phase 0 status. Get a nod, then execute.
+Phase 0 status, then go straight into Phase 4. The plan needs no nod: an
+unpushed commit is cheap to redo, and the stops that remain — a stack split, a
+Phase 1 flag, an ambiguous hunk, a failing gate, a file the user authored —
+are the questions with no safe default.
 
 ### Phase 4 — Execute one commit at a time
 For each planned commit:
