@@ -8,12 +8,13 @@ description: >-
   the chosen fix per finding, with the evidence — and stops for approval
   before writing a line. On approval it applies the approved fixes in order,
   one finding at a time, and records what it refuted, applied, or the user
-  dismissed so the next /ez:review does not raise it again. A finding it
+  dismissed, and the design decision behind each applied fix, so the next
+  /ez:review does not raise it again or argue it back. A finding it
   refutes is a result, not a failure. Works in any git repository and any
   language. Use this whenever review findings need fixing — invoked by the
   user via /ez:fix, or by the model when asked to fix, apply, or act on a
   review's findings.
-argument-hint: "[all|confirmed|1,3,5] [notes: what is intentional, what to prefer]"
+argument-hint: "[all|confirmed|1,3,5] [notes: what is intentional, what was decided, what to prefer]"
 allowed-tools: Bash, Read, Grep, Glob, Agent, Write, Edit
 ---
 
@@ -108,12 +109,20 @@ finding the last review listed for this branch, including the ones it carried
 under **Not re-checked**.
 
 Everything after the selection is notes, in the user's own words. Read them
-for three things and say which you found:
+for four things and say which you found:
 
 - **Dismissals** — "4 is intentional", "leave the retry change alone". A
   dismissed finding is not dispatched; it is recorded as dismissed by the user
   with their reason, so the next review honors it the way it honors intent in
   the PR body.
+- **Decisions** — "for 3, keep the mutex over atomics: this path is cold". A
+  choice between alternatives, with the user's reason, that the next review
+  should not argue back. It names the finding it answers. One that keeps the
+  code as it stands is that finding's record, `decided`, and the finding is
+  not dispatched. One that picks a way to fix it also goes to the proposer as
+  a preference, and when the fix lands, the user's choice and reason ride on
+  the `applied` line in place of the tester's (Phase 4). Its reason goes to
+  no agent.
 - **Preferences** — "prefer the helper in `util/`", "don't add tests here".
   Passed to the proposer as guidance. Guidance never lowers the bar.
 - **Scope** — "do the larger refactor if that is the right fix". With it, the
@@ -172,13 +181,13 @@ patched files outside it and still reports success. Then:
    verdict, claim, and scenario, and the two or three lines that state what
    the change is for. Drop any `Fix:` line a report may still carry: it is
    exactly the kind of prior answer the agents must not see. Leave out its
-   `Upheld:` section, which holds rulings, not findings.
+   `Upheld:` section, which holds rulings and decisions, not findings.
 3. If the report has a `Fix record:` section, its lines postdate the review:
    an earlier run of this skill ruled on this same review, or the review
    carried an `applied` line with a finding it did not re-check. A selected
    finding with a line there in any status but `planned` is shown in the plan
    under that status and not dispatched again, unless the notes ask for it.
-4. Apply the selection and the dismissals from the notes.
+4. Apply the selection, and the dismissals and decisions from the notes.
 5. Record the scope the review used, without reading it: the base, resolved
    the way `/ez:review` resolves it (the open PR's base, else the nearest
    stacked parent, else the default branch), as `git merge-base <base> HEAD`;
@@ -187,9 +196,9 @@ patched files outside it and still reports success. Then:
    read the diff, the source, or the rules into this context. The agents read
    them, and nothing here needs them before Phase 4.
 
-Say in one line what was selected, what was dismissed, and what was skipped
-as already ruled on. If nothing is left to dispatch, print the plan with what
-there is and stop.
+Say in one line what was selected, what was dismissed or decided, and what
+was skipped as already ruled on. If nothing is left to dispatch, print the
+plan with what there is and stop.
 
 ### Phase 1 — Judge and propose
 Dispatch one `ez:fix-proposer` per remaining finding, in parallel. Each gets:
@@ -243,6 +252,7 @@ Print the plan in this shape and no other, then end the turn:
    Fix: … (as in 1)
    Larger than this change: <the deeper fix, one line>; offered as item 3b in place of 3, proposed and tested before it is applied.
 4. `path/to/fourth.ext:12` · <claim> — dismissed by user: <reason>.
+5. `path/to/fifth.ext:30` · <claim> — decided by user: <chosen> over <rejected>, because <reason>.
 
 Disagreements: proposer preferred <mechanism> for 3; tester picked <mechanism> because <reason>.   (if any)
 Reply with the numbers to apply (`all`, `1,3`, `1 but use the helper in util/`) and I apply them in that order.
@@ -251,17 +261,19 @@ Reply with the numbers to apply (`all`, `1,3`, `1 but use the helper in util/`) 
 Then record it at the end of `<git-dir>/ez-review.md`, under its
 `Fix record:` heading, adding one if there is none: one line per finding this
 run ruled on, by the report's number, with its `path:line` and status
-(`refuted`, `pre-existing`, `dismissed`, or `planned`), replacing any line an
-earlier run wrote for that number and leaving the others. A larger fix offered
-as its own item shares its finding's line. A `refuted` or `pre-existing` line
-quotes two lines verbatim: the proposer's `SITE` and the line its `EVIDENCE`
-quotes. A `dismissed` line quotes the finding's own line and gives the
-user's reason. The line is the proposer's `SITE` when the finding went to
-one; otherwise read it from the file, found by the finding's claim near its
-cited number, since an earlier run's fixes may have moved it. The next
-review upholds a ruling while those lines read as quoted and carries it
-forward while its file is under review. The record is on disk from this
-moment, so the next review honors it even if the user never replies.
+(`refuted`, `pre-existing`, `dismissed`, `decided`, or `planned`), replacing
+any line an earlier run wrote for that number and leaving the others. A larger
+fix offered as its own item shares its finding's line. A `refuted` or
+`pre-existing` line quotes two lines verbatim: the proposer's `SITE` and the
+line its `EVIDENCE` quotes. A `dismissed` line quotes the finding's own line
+and gives the user's reason; a `decided` line quotes the same line and gives
+what was chosen, what was rejected, and the user's reason. The line is the
+proposer's `SITE` when the finding went to one; otherwise read it from the
+file, found by the finding's claim near its cited number, since an earlier
+run's fixes may have moved it. The next review upholds a ruling while those
+lines read as quoted and carries it forward while its file is under review.
+The record is on disk from this moment, so the next review honors it even if
+the user never replies.
 
 ### Phase 4 — Apply, on approval
 The user's reply names what to apply and any amendments. First Read
@@ -289,13 +301,25 @@ For each other approved item, in order:
    applied.
 2. Change the `Fix record:` line of the finding the item answers to
    `applied`, with the mechanism in one line, before anything can stop the
-   run: from here on, the record says what the tree holds.
+   run: from here on, the record says what the tree holds. The same line
+   records the decision the fix made, so the next review does not argue it
+   back: chosen, the applied mechanism; rejected, every candidate but the
+   applied mechanism, each with the tester's `LOST` clause, or the user's
+   words for a tester's pick they overrode, and leaving the code as it was,
+   with the finding's scenario as the reason; why, the tester's `PICK`
+   sentence, or the user's words when they amended the item or stated a
+   decision on it; and one or two lines the fix wrote, quoted verbatim from
+   the re-read in step 1. Quote only a line that reads on one line of its
+   file only. When the fix wrote no such line, as a pure deletion may not,
+   record no decision, since a decision with no anchor would suppress across
+   the whole file.
 3. Make the test change the plan named, unless the applied diff carried it.
 4. Run the narrowest existing test that exercises the changed function when
    one can be named; report the command and its result. If it fails, stop,
    show the output, and ask before going on.
 
-Then mark `dismissed` each item the reply dismissed, quoted as in Phase 3.
+Then mark `dismissed` each item the reply dismissed, and `decided` each item
+the reply decided without applying, quoted as in Phase 3.
 Any other `planned` line stays `planned`, so a later run over this review
 proposes that finding again, with any larger fix the user declined. HEAD has
 not moved, so `/ez:commit` and `/ez:pr` read the `applied` lines to tell that

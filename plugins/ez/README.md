@@ -64,8 +64,9 @@ through `/ez:publish`, which the user invokes to run steps 4 to 6 in a row.
    the repo tests). A second fresh agent tries to break each candidate and
    picks one. It prints the plan and stops; on approval it applies the
    approved fixes in order and records in the review's report what it
-   refuted, applied, or the user dismissed, so the next `/ez:review` checks
-   the fixes and does not raise the rest again. A refuted finding is a
+   refuted, applied, or the user dismissed, and what each applied fix chose
+   over what, so the next `/ez:review` checks the fixes, does not raise the
+   rest again, and does not argue a decision back. A refuted finding is a
    result. `skills/fix/SOURCES.md` records the evidence behind its shape,
    including why the judgment is never left to the context that wrote the
    fix.

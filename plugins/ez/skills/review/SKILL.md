@@ -394,9 +394,9 @@ If there is nothing, say nothing — the sweep does not pad.
 
    Then the rulings, still after your findings are settled: each entry of
    that report's `Fix record:` marked `refuted`, `pre-existing`, or
-   `dismissed`, and each ruling it carried under `Upheld:`. A ruling quotes
-   the line its finding sat on and, unless it is a dismissal, the line that
-   decided it. A finding of this run is the ruling's when it names the same
+   `dismissed`, and each such ruling it carried under `Upheld:`. A ruling
+   quotes the line its finding sat on and, unless it is a dismissal, the line
+   that decided it. A finding of this run is the ruling's when it names the same
    mechanism on a line that reads as the first quote, and no other line of
    that file reads the same: a pasted copy is a new instance, not the one
    ruled on. It is dropped and counted as **upheld** while the deciding line
@@ -407,7 +407,32 @@ If there is nothing, say nothing — the sweep does not pad.
    `applied` is evidence for **resolved**; read the line to confirm, and if
    the scenario still holds, the finding stays, marked **reopened** (the fix
    did not close it). `planned` entries are progress on that report and end
-   with it. The record suppresses; it never seeds.
+   with it.
+
+   Then the decisions: the one an `applied` entry records, whether its
+   finding is now resolved or carried as not re-checked; each `decided`
+   entry; each `decided` entry carried under `Upheld:`; and each `chosen`
+   entry there, a fix's decision step 5 carried. A decision names what was
+   chosen and the alternatives rejected, leaving the code as it was among
+   them, each with its reason, and quotes lines of the chosen code. The
+   ruling match above does not apply to it. A finding of this run is the
+   decision's when its remedy is one of the rejected alternatives, or it
+   names the failure of the finding a `decided` entry answers, and it sits
+   on, or argues about, a line that reads as one of the decision's quotes,
+   on one line of its file only. It stays, marked **reopened** with what
+   changed or what was missed, when a quoted line has changed; and, unless
+   it names a `decided` entry's own failure, which a user's decision holds
+   as a dismissal does, when you can quote evidence other than its own
+   scenario that the reason did not weigh, or when its scenario can be
+   closed in full while keeping what the decision chose, as a caller a fix
+   broke can be mended without reverting the fix; it then stays with that
+   remedy in place of the rejected one. Otherwise it is dropped and counted
+   as **held**: only a rejected alternative would close its scenario, so the
+   failure is the price the decision weighed in rejecting it, as giving up
+   on an outage is the price of a retry cap. A decision settles a trade-off,
+   not a defect in carrying it out. A user's decision is not re-argued on
+   the trade-off it names. A decision whose `applied` entry this run marks
+   reopened retires with it. The record suppresses; it never seeds.
 2. Rank by severity: correctness and reliability outrank performance,
    simplicity, and fit when the cap forces a cut; within a dimension,
    CONFIRMED outranks PLAUSIBLE, and a failure users would hit outranks one
@@ -432,7 +457,7 @@ If there is nothing, say nothing — the sweep does not pad.
    Pre-existing, not counted: `path:line` — <one line>.          (if any)
    Previous run: 2 resolved, 1 still open, 1 withdrawn (<why>),
    1 not re-checked.                                              (if any)
-   Rulings: 2 upheld, 1 reopened, 1 retired.                      (if any)
+   Rulings: 2 upheld, 1 held, 1 reopened, 1 retired.              (if any)
    Clean: <the angles that ran and produced nothing, as one line>.
    Skipped: <angles and code the notes switched off or left alone>. (if any)
    ```
@@ -450,19 +475,28 @@ If there is nothing, say nothing — the sweep does not pad.
    session has not read. Append every finding step 1 marked not re-checked,
    copied unchanged but numbered on from this run's last, under a
    `Not re-checked:` heading, so a narrowed run never erases what it did not
-   look at; leave out one whose ruling the next sentence carries, since the
-   ruling stands for it. Then append under `Upheld:` every ruling that still
-   holds, with its file, mechanism, status, quotes, and a dismissal's reason:
+   look at; leave out one whose ruling or `decided` entry the next two
+   sentences carry, since that stands for it. Then append under `Upheld:`
+   every ruling that still holds, with its file, mechanism, status, quotes,
+   and a dismissal's reason:
    one this run did not reopen, whose file is in this run's scope, and whose
    quoted lines still read as quoted, the first on one line of its file only,
    whether or not this run raised its finding; and, unchanged, one in code
    this run did not look at because the notes switched it off or targeted
-   other paths or another range. The rest retire, so a ruling lasts as long
-   as the change it was about. Last, when a finding carried as not re-checked
-   has a `Fix record:` line marked `applied`, copy that line, renumbered with
-   the finding, under a `Fix record:` heading, so `/ez:fix`, `/ez:commit`, and
-   `/ez:pr` still read that fix as unreviewed. The file stays out of
-   `git status`. Remove any worktree Phase 0 created.
+   other paths or another range. Every decision that holds by the same test
+   (a finding reopened with a remedy that keeps the choice leaves it
+   standing), each of its quotes on one line of its file only, goes there
+   too, as a
+   `decided` entry, or a `chosen` one when an `applied` line recorded it or
+   it was carried as `chosen`, with its file, the failure it answers, chosen,
+   rejected, reasons, and quotes; only a user's decision is `decided`. The
+   rest retire, so a ruling lasts as long as the change it was about. Last,
+   when a finding carried as not re-checked has a `Fix record:` line marked
+   `applied`, copy that line, renumbered with the finding and with its
+   decision, under a `Fix record:` heading, so `/ez:fix`, `/ez:commit`, and
+   `/ez:pr` still read that fix as unreviewed; its decision rides there
+   rather than under `Upheld:`. The file stays out of `git status`. Remove
+   any worktree Phase 0 created.
 6. Close with one line naming the next step. After a first run with findings:
    `/ez:fix`, which rules on each finding in a fresh context, proposes and
    pressure-tests the fix, and applies what the user approves; then

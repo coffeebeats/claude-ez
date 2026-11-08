@@ -334,9 +334,11 @@ and without the line `/ez:pr` would list a fixed finding as a hazard and
 Entries have two lifetimes because they say two different things. `planned`
 and `applied` are progress on one report and end with it: the next review
 re-reads the code, and an applied fix becomes resolved or reopened, or rides
-on with a finding that review did not re-check. `refuted`, `pre-existing`,
-and `dismissed` are rulings on the code, which a review leaning toward recall
-would raise again on every run. The review carries them under **Upheld**, as
+on with a finding that review did not re-check. The decision an `applied`
+line records is the exception, for the reasons under "Decisions" below.
+`refuted`, `pre-existing`, `dismissed`, and `decided` are rulings on the
+code, which a review leaning toward recall would raise again on every run.
+The review carries them under **Upheld**, as
 it carries findings it did not look at under **Not re-checked**, while two
 things hold. Their file is still in the review's scope, so a ruling lasts as
 long as the change it was about; on a branch that lives long, such as a
@@ -405,6 +407,83 @@ over-verification". The design is a separation of roles with one rubric, not a
 step script; `SKILL.md` should stay at that altitude.
 
 - `model-migration.md` lines 1094, 1526
+
+## Decisions, so a fix is not argued back
+
+Review and fix rounds could flip-flop. A fix applied for one finding drew a
+later finding whose remedy was the code the fix replaced, or the candidate
+the tester turned down, and the next fix undid the first. Rulings could not
+catch it. A ruling is anchored on its finding's own line, and the fix rewrote
+that line, so the opposite finding sits on new code that nothing quotes.
+Nothing recorded "chose A over B, because R".
+
+The fix step already makes that decision and throws it away. The tester
+returns `PICK` with a sentence and `LOST` with a clause per losing
+candidate, and the plan prints them as `Also considered:`. So each `applied`
+line now keeps them: the mechanism chosen, each candidate rejected with its
+`LOST` clause, the old code rejected with the finding's scenario as its
+reason, and one or two lines the fix wrote. The old code is on the list
+because the commonest flip is a finding that asks to back the fix out. Every
+applied fix records a decision, not only one the user asks for or keeps from
+an offer in the plan. That suppresses the most of the three options, and the
+limits below are what keep it narrow. A user can also state a decision in
+the notes or the reply. One that keeps
+the code as it stands becomes a `decided` line on its finding, which, unlike
+a dismissal, names what was rejected.
+
+The decision rides on the `applied` line, never in its place. `/ez:commit`
+and `/ez:pr` read `applied` by name to tell that a fix postdates the review,
+and the earlier `deferred` status broke a rerun by overwriting it. It is the
+one part of an `applied` line that outlives its report. The fix it describes
+becomes resolved or reopened at the next review, but the choice it made is a
+ruling on the code, so it takes the rulings' lifetime and is carried under
+**Upheld** as `chosen`, a status of its own. The fix chose how to close its
+finding's failure, not to live with it, so the entry never takes the hold a
+user's `decided` entry has (below). The ruling match cannot serve it. It
+quotes lines the fix wrote, not the finding's line, and the question it asks
+is whether a new finding's remedy is one of the rejected alternatives. The review answers
+that after its own findings settle, as it does for rulings, so a decision
+suppresses and never seeds.
+
+Three limits keep the suppression narrow. First, a decision settles a
+trade-off, not the work. A finding is held only when a rejected alternative
+is the one thing that would close its scenario: that failure is the price
+the decision weighed, as giving up on an outage is the price of a retry
+cap. When the scenario can be closed in full while keeping what was
+chosen, as a caller the fix broke can be mended without reverting it, the
+finding is reopened with that remedy, even though it asked to back the fix
+out. A second review exists to catch what the fixes introduced. The test
+asks what closes the failure, not which dimension it is in, so not every
+finding with a failure scenario reopens a decision. A user's `decided`
+entry holds its own finding's failure as a dismissal would, so giving a
+reason never protects less than dismissing. Second, quotes follow the
+ruling rule: each reads on one line of its file only. Lines a fix writes,
+such as a closing brace or a lock call, often repeat. A fix that wrote no such line records no decision, because a
+decision with no anchor could only match across the whole file. Third, the
+review counts each suppression as **held**, apart from **upheld**, so the
+report shows when a decision rather than a refutation dropped a finding.
+
+Retirement is automatic, where review tools mostly leave it to people.
+CodeRabbit's learnings carry no expiry, and its docs recommend a manual
+review because "learnings can become stale". ESLint's bulk suppressions
+detect staleness from the code: when a suppressed violation stops occurring,
+the run fails with "There are suppressions left that do not occur anymore".
+A decision goes the ESLint way. It retires when a quoted line changes, when
+its file leaves the review's scope, when the `applied` entry that recorded
+it is reopened, or when the review can quote evidence other than a
+finding's own scenario that its reason did not weigh, except against a
+finding that names a user's `decided` entry's own failure, which that entry
+holds as a dismissal would. A finding reopened with a remedy that keeps the
+choice leaves the decision standing. The ADR convention, "supersede the
+ADR by creating a new ADR", corresponds to the next fix recording its own
+decision over the retired one. Two other homes were ruled out. The notes and the PR body go to
+the review's finders before they look, which would seed them. A comment in
+the code is repository text, which this skill reads as data, not as a
+verdict.
+
+- https://docs.coderabbit.ai/guides/learnings
+- https://eslint.org/docs/latest/use/suppressions
+- https://github.com/joelparkerhenderson/architecture-decision-record
 
 ## Dispatches name paths, and the tested diff is what lands
 

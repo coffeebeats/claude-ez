@@ -220,8 +220,9 @@ make room.
    finding listed in `<git-dir>/ez-review.md` whose path this branch changes
    (`git diff --name-only <target>...HEAD`), when the file is headed with this
    branch or, for a stacked branch, with its parent. Leave out the findings its
-   `Fix record:` marks `refuted`, `pre-existing`, `dismissed`, or `applied`,
-   and the rulings under `Upheld:`, which are not findings.
+   `Fix record:` marks `refuted`, `pre-existing`, `dismissed`, `decided`, or
+   `applied`, and the rulings and decisions under `Upheld:`, which are not
+   findings.
    No hazard, no section.
 3. `**Verified**` — **optional and rare.** CI reports itself, so this earns its
    place only for what CI cannot show: a manual run-the-thing check, a red check
