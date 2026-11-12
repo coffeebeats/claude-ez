@@ -189,6 +189,24 @@ fixes, one reconciling run, stop.
 - <https://code.claude.com/docs/en/code-review-pull-requests>
 - <https://code.claude.com/docs/en/code-review-customize>
 
+## How a finding prints
+
+The first template put the location, dimension, verdict, and status on one
+line and the claim and scenario on the next. In the terminal each finding
+read as one block of text, and no part of it stood out. The user picked a
+headline-first shape out of three mock-ups. The claim is in bold, the tags
+go on a sub-bullet with only the location and the verdict in code, and the
+scenario is cut to trigger → wrong result.
+
+Two constraints shaped it. CommonMark parses a line break that has no
+trailing spaces or backslash before it as a soft break, which a renderer may
+show as a space. So the template's continuation lines could join into one
+paragraph, and each line is now its own list item. The terminal also has no
+collapsible element, so detail is cut rather than folded. The cut detail
+still lives in `ez-review.md`, since `/ez:fix` needs the full scenario.
+
+- <https://spec.commonmark.org/0.31.2/#soft-line-breaks>
+
 ## The prompt this replaces
 
 "Critically evaluate this code — do you see any bugs or gaps? Anything we

@@ -447,20 +447,32 @@ If there is nothing, say nothing — the sweep does not pad.
    Notes: <the guidance taken from the notes, in one line>.       (if any)
    <two or three lines: what the change does, from Phase 1; omitted at low>
 
-   1. `path/to/file.ext:123` · correctness · CONFIRMED · new
-      <one-sentence claim>. Fails when <scenario → wrong result>.
-   2. `path/to/other.ext:40` · reliability · PLAUSIBLE · still open (was #3)
-      <claim>. <scenario>. Confirm by <what the check named>.
-   3. `path/to/third.ext:88` · correctness · CONFIRMED · reopened (<what changed>)
-      <claim>. Fails when <scenario → wrong result>.
+   1. **<claim>**
+      - `path/to/file.ext:123` · `CONFIRMED` · correctness · new
+      - <trigger> → <wrong result>
+   2. **<claim>**
+      - `path/to/other.ext:40` · `PLAUSIBLE` · reliability · still open (was #3)
+      - <trigger> → <wrong result>
+   3. **<claim>**
+      - `path/to/third.ext:88` · `CONFIRMED` · correctness · reopened (<what changed>)
+      - <trigger> → <wrong result>
 
    Pre-existing, not counted: `path:line` — <one line>.          (if any)
-   Previous run: 2 resolved, 1 still open, 1 withdrawn (<why>),
-   1 not re-checked.                                              (if any)
-   Rulings: 2 upheld, 1 held, 1 reopened, 1 retired.              (if any)
-   Clean: <the angles that ran and produced nothing, as one line>.
+   *Since last run: 2 resolved · 1 still open · 1 withdrawn · 1 not re-checked · 2 upheld · 1 held · 1 reopened · 1 retired*   (if any)
    Skipped: <angles and code the notes switched off or left alone>. (if any)
    ```
+
+   The claim is the headline: what goes wrong, short enough to take in at a
+   glance, with no trailing period. The second line carries the tags, and
+   only the location and the verdict are in code, so the eye finds those two
+   first. The third line is the scenario cut to its trigger and its wrong
+   result, joined by an arrow; a cleanup finding puts its concrete cost
+   there. Each line is its own sub-bullet, never a bare line break, which
+   markdown may join into one paragraph. The tally counts only the statuses
+   that occur. What the terminal leaves out — the full scenario, how to
+   confirm a PLAUSIBLE finding, why a finding was withdrawn, the angles that
+   came back clean — goes to the file in step 5, and when the user asks
+   about a finding by number, answer from that.
 
    With nothing to report, the list is replaced by the line
    `No findings. Checked <the dimensions that ran> against <scope>.`, the
@@ -468,9 +480,13 @@ If there is nothing, say nothing — the sweep does not pad.
    residual risk the review could not settle by reading. No praise section,
    no summary of the diff beyond the Phase 1 lines, no severity labels beyond
    the verdict, no code blocks longer than three lines.
-5. Write the same report to `<git-dir>/ez-review.md`, the invoking checkout's
-   even when the code was read from a throwaway worktree, headed with the
-   branch, head SHA, and level, replacing whatever was there; Read it first
+5. Write the full report to `<git-dir>/ez-review.md`, the invoking checkout's
+   even when the code was read from a throwaway worktree: the shape of step 4,
+   with each finding's third line written out as `Fails when <scenario →
+   wrong result>.`, a PLAUSIBLE finding given a fourth, `Confirm by <what the
+   check named>.`, each withdrawn finding's reason in the tally, and a
+   `Clean: <the angles that ran and produced nothing>.` line after it. Head
+   it with the branch, head SHA, and level, replacing whatever was there; Read it first
    if step 1 did not, since the Write tool refuses to overwrite a file this
    session has not read. Append every finding step 1 marked not re-checked,
    copied unchanged but numbered on from this run's last, under a

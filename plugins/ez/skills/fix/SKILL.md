@@ -230,8 +230,8 @@ on Opus at `high` (the Agent tool's `model` and `effort` override the file's),
 with the tester's objections, and run the tester again on what
 comes back. One round; after it, the plan shows what stands and what did not,
 and the user decides. A pick that differs from the proposer's preference is
-not a reason for a round: the pick held, and the plan's `Disagreements:` line
-shows the user both.
+not a reason for a round: the pick held, and the plan flags the finding under
+**Your call** so the user can ask for both.
 
 ### Phase 3 — Plan, then stop
 Print the plan in this shape and no other, then end the turn:
@@ -239,24 +239,39 @@ Print the plan in this shape and no other, then end the turn:
 ```markdown
 ## Fix plan — <branch> @ <short sha> · <n> findings selected
 
-1. `path/to/file.ext:123` · <claim from the review>
-   Verdict: CONFIRMED — <the evidence, one line>.
-   Fix: <mechanism in one sentence>; <what it touches>.
-   Why this one: fits <neighbor path:line> · <standard, or "no standard applies"> · at the cause · <size>.
-   Test: <extend X / add Y / none, because Z>.
-   Also considered: <mechanism> — <why it lost, one clause>.
-2. `path/to/other.ext:40` · <claim>
-   Verdict: REFUTED — <the line that defeats the scenario, quoted>. Nothing to do.
-3. `path/to/third.ext:88` · <claim>
-   Verdict: PLAUSIBLE — <what would confirm it>.
-   Fix: … (as in 1)
-   Larger than this change: <the deeper fix, one line>; offered as item 3b in place of 3, proposed and tested before it is applied.
-4. `path/to/fourth.ext:12` · <claim> — dismissed by user: <reason>.
-5. `path/to/fifth.ext:30` · <claim> — decided by user: <chosen> over <rejected>, because <reason>.
+**Will apply**
+1. **<the fix, one short line>**: `path/to/file.ext:123` · test: <extend X / add Y / none>
+3. **<the fix>**: `path/to/third.ext:88` · `PLAUSIBLE` · test: <…> · <size, when it deletes code>
 
-Disagreements: proposer preferred <mechanism> for 3; tester picked <mechanism> because <reason>.   (if any)
-Reply with the numbers to apply (`all`, `1,3`, `1 but use the helper in util/`) and I apply them in that order.
+**Your call**
+- **3b.** Larger fix: <the deeper fix, one line>. Offered in place of 3, proposed and tested before it is applied
+- **3.** Proposer and tester picked different fixes. Reply `why 3`
+- **6.** No fix held: <the tester's objection, one clause>
+
+**Nothing to do**
+- **2.** Refuted: <the line that defeats the scenario, quoted>
+- **7.** Pre-existing: <the evidence, one clause>
+- **4.** Dismissed by you: <reason>
+- **5.** Decided by you: <chosen> over <rejected>
+- **8.** Already <status> in an earlier run
+
+Reply with the numbers to apply (`all`, `1,3`, `1 but use the helper in util/`) and I apply them in that order. `why <n>` shows the evidence.
 ```
+
+Leave out a group with nothing in it. A finding sits in one group by what
+the user has to do about it: a fix ready to approve, a choice only the user
+can make, or nothing. A finding whose fix is ready but which also carries a
+larger offer or a disagreement appears under both **Will apply** and **Your
+call**. The headline of a fix is what it does, not the finding's claim,
+since the user has just read the review; mark a PLAUSIBLE finding, so a fix
+for something unconfirmed is never approved unseen. Bold and code mark only
+the fix, the location, and the verdict, and each item is its own list entry,
+never a bare line break. The proposer still answers every part of the bar
+and the tester still rules on every candidate; the plan just does not print
+it. When the user asks `why <n>`, print from the agents' returns: the
+verdict and its evidence, the fit, standard, depth, and size of the chosen
+fix, each candidate that lost with the tester's reason, and, when they
+differed, what the proposer preferred and why the tester picked otherwise.
 
 Then record it at the end of `<git-dir>/ez-review.md`, under its
 `Fix record:` heading, adding one if there is none: one line per finding this

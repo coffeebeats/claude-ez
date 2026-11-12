@@ -419,7 +419,7 @@ Nothing recorded "chose A over B, because R".
 
 The fix step already makes that decision and throws it away. The tester
 returns `PICK` with a sentence and `LOST` with a clause per losing
-candidate, and the plan prints them as `Also considered:`. So each `applied`
+candidate, and the plan shows them when the user asks `why <n>`. So each `applied`
 line now keeps them: the mechanism chosen, each candidate rejected with its
 `LOST` clause, the old code rejected with the finding's scenario as its
 reason, and one or two lines the fix wrote. The old code is on the list
@@ -622,3 +622,17 @@ into the worktree would mean editing each repository's `.gitignore`, and commit
 `2621727` put them in each worktree's own git directory on purpose. They stay.
 The skills say plainly when a write is refused and never route around it
 through the shell, which the smoke test's session did.
+
+## How the plan prints
+
+The first plan printed six lines per finding: verdict, fix, why this one,
+test, also considered, and a separate disagreements line. In the terminal
+that read as one block of text. The user picked a layout that groups
+findings by what they have to do: **Will apply**, **Your call**, and
+**Nothing to do**. Each fix gets one line, with the fix in bold and the
+location in code. Everything else is shown when the user asks `why <n>`.
+The agents still answer the full bar. Only the printing changed, and
+`/ez:review`'s SOURCES records the markdown constraints behind it. The
+cut detail lives in the agents' returns in this session and is not written
+to disk. Approval comes in the same session, and a new state file would
+need `/ez:clean` to learn about it.
