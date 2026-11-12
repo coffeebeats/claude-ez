@@ -256,9 +256,20 @@ Then write `<git-dir>/ez-plan.md`:
 If the write is refused, say so, and carry both sections in the proposer's
 dispatch instead of the file's path.
 
-Print the frame's **Problem** and **Done when**, and one line naming what the
-reuse map found, so the user can interrupt a misframed run before it spends
-more. Do not wait for a reply.
+Print the frame in this shape, so the user can interrupt a misframed run
+before it spends more, and do not wait for a reply:
+
+```markdown
+- **Problem:** <one or two lines>
+- **Done when:**
+  - <criterion>
+  - <criterion>
+- **Already here:** <what the reuse map found, one line>
+```
+
+Each line is its own list item, never a bare line break, which markdown may
+join into one paragraph. This is the only print of **Done when** and of
+what already exists. Phase 5 leaves both out.
 
 ### Phase 4 — Propose and evaluate
 Dispatch one `ez:plan-proposer` with the plan file's path, `<checkout>`, the
@@ -282,42 +293,59 @@ what comes back, dispatched as above. Whatever stands after it goes to Phase
 5.
 
 A ranking that differs from the proposer's preference is not a reason for a
-round. The ranking held, and the `Disagreements:` line shows the user both.
+round. The ranking held, and the `Split:` line shows the user both.
 
 ### Phase 5 — Present, then stop
 Print the options in this shape and no other, then end the turn:
 
 ```markdown
-## Plan options — <issue #n: title | the problem in a few words> · <branch> @ <short sha>
+## Plan options — <issue #n: title | the problem in a few words> · `<branch>` @ `<short sha>`
 
-Problem: <one or two lines>. Done when: <the criteria, compressed>.
-Already here: <what the directions build on or the evaluator found, path and one line each, at most four>
+*Second round: <what sank the first proposals, one clause>.*   (if it ran)
 
-1. <name> — <mechanism, one sentence> · PASSES
-   How: <three to six lines>
-   Builds on: <path:line, …> · New: <piece — why nothing existing will do> | none
-   Touches: <files or modules> · Size: <S|M|L, files, new abstractions>
-   Decisions: <decision (one-way)>; <decision (two-way)>
-   Trade-off: <where it gives ground, and why that is acceptable>
-   Risks: <risk → mitigation>
-   Verify: <tests to extend or add; the end-to-end check>
-2. <name> — <mechanism> · PASSES WITH CONDITIONS
-   … (as in 1)
-   Conditions: <what the implementation must close>
+1. **<name>**: <mechanism, one sentence> · `PASSES`
+   - Size `<S|M|L>` · <n> files · new: <piece> | nothing new
+   - Commits to: `one-way` <decision>; … | nothing one-way
+   - Gives up: <the trade-off, one clause>
+2. **<name>**: <mechanism, one sentence> · `PASSES WITH CONDITIONS`
+   - Size `<S|M|L>` · <n> files · new: <piece> | nothing new
+   - Commits to: `one-way` <decision>; … | nothing one-way
+   - Gives up: <the trade-off, one clause>
+   - Must close: <each condition, one clause>
 
-Did not pass: <name> — <mechanism> · <the decisive objection, with its path:line>.
-Ranking: 1 over 2 — <the evaluator's reason>. The evaluator also saw: <the missed direction, with its evidence>.   (second sentence only if it named one)
-Disagreements: the proposer preferred <name> because <reason>; the evaluator ranked <name> first because <reason>.   (if any)
+**Recommended: 1.** <the evaluator's reason for ranking it first, one line>
 
-Reply with a number to start building it (`1`, `2 but keep the old flag`), `hold 1` to save the plan without starting, or `none` with what to change.
+**Split:** the proposer preferred <n> because <its reason, one clause>.   (if they differ)
+
+**Also seen:** <the direction the evaluator found that none took, one line, with its `path:line`>   (if any)
+
+**Didn't pass:** **<name>**: <the decisive objection, one clause> (`path:line`)   (one bullet each when several)
+
+Reply with a number to start building it (`1`, `2 but keep the old flag`), `hold 1` to save the plan without starting, or `none` with what to change. `more <n>` shows how it works, what it builds on, the risks, and the test plan.
 ```
 
-Number the directions that pass in the evaluator's rank order. When the
-second round ran, say so in one line under **Already here**, with what sank
-the first proposals. When nothing passed after it, head the list `Nothing
-passed`, give each direction with its decisive objection, and offer the
-same replies: the user may take a direction knowing the objection, or say
-what to change.
+Number the directions that pass in the evaluator's rank order, so the
+recommendation is always 1. The recommendation is the evaluator's, since it
+is the one that read the code. This context read none, and adds no opinion
+of its own.
+
+The name is the headline, in bold, with the mechanism after it. Each line
+below it is its own sub-bullet, never a bare line break, which markdown may
+join into one paragraph, and the footer lines are separated by blank lines
+for the same reason. Only the size, the verdict, and the word `one-way` are
+in code. A new piece is a dependency, abstraction, table, file format, or
+public interface the direction adds. Two-way decisions are left out, since
+they are cheap to change. Lines whose condition does not hold are left out.
+What the terminal cuts (How, Builds on, Touches, Risks, Verify, two-way
+decisions, and the evaluator's full verdict) stays in the agents' returns in
+this session. `more <n>` prints it from them, and the plan section Phase 6
+writes carries all of it.
+
+When nothing passed after the second round, head the list `Nothing passed`
+and print no recommendation. Give each direction its headline, with the
+verdict `FAILS`, and one sub-bullet in place of the other lines: "Fails
+because:", the decisive objection, and its `path:line`. Offer the same replies: the user
+may take a direction knowing the objection, or say what to change.
 
 ### Phase 6 — On the pick, write the plan and build it
 The user's reply decides what happens:
@@ -336,6 +364,10 @@ The user's reply decides what happens:
   preferences, or, where they are constraints, added to the frame in the plan
   file, and present again. A round the user asks for is theirs to ask for;
   the two-round limit is on rounds that run on their own.
+- **`more` and a number.** Print that direction's cut detail from the
+  agents' returns, as labeled sub-bullets (How, Builds on, Touches, Risks,
+  Verify, two-way decisions, and the evaluator's verdict on each check), and
+  wait.
 - **A question.** Answer it from what the agents returned, and wait.
 
 To write the plan, Read `<git-dir>/ez-plan.md`, change `framed` in its
@@ -375,9 +407,17 @@ options printed earlier:
 4. If this context is compacted or cleared partway through, read the plan
    section again before going on.
 
-Close by holding the work against the plan: each **Done when** criterion and
-each **Condition**, met or not, and any departure from the plan with its
-reason. When every one is met, Read `<git-dir>/ez-plan.md` and change
+Close by holding the work against the plan, in this shape:
+
+```markdown
+**Built: <name>**
+- `met` <Done when criterion> — <the check that shows it>
+- `NOT MET` <Condition> — <what is missing>
+- `departed` <what changed from the plan> — <why>
+```
+
+One line per **Done when** criterion and per **Condition**, then one per
+departure from the plan. When every one is met, Read `<git-dir>/ez-plan.md` and change
 `picked` in its heading to `built`; otherwise leave it `picked`, so the next
 run asks before replacing it. Then name the next step in one line:
 `/ez:review`, which reads the change critically before it ships.

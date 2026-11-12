@@ -307,8 +307,8 @@ ensembling using multiple reasoning paths." A round costs a proposer and an
 evaluator, and Anthropic's harness-design post put its generator-plus-judge
 harness at "over 20x more expensive" than a solo run, for better output.
 `/ez:fix` makes the same call: the second round runs only when nothing holds,
-and a disagreement about which direction is best goes to the user on a
-`Disagreements:` line rather than back to a model, since re-asking a model
+and a disagreement about which direction is best goes to the user, on the
+plan's `Split:` line, rather than back to a model, since re-asking a model
 about its own answer is the "Are you sure?" flip `/ez:fix`'s `SOURCES.md`
 documents.
 
@@ -411,6 +411,32 @@ the plan says]", "Found: [actual situation]", "Why this matters:
 - Claude Code 2.1.319 binary: settings schema (offset ~162.968M), plan-exit handling (offset ~326.668M)
 - `humanlayer/humanlayer`, `legacy` branch, `.claude/commands/implement_plan.md`
 - `obra/superpowers`, `skills/subagent-driven-development/SKILL.md`
+
+## How the options print
+
+The first options list printed nine labeled lines per direction, plus a
+problem recap and an already-here list. In the terminal it read as one block
+of text, and no part of it stood out. The user picked a card per direction
+out of three mock-ups, the same shape as `/ez:review`'s findings and
+`/ez:fix`'s plan. The name is in bold, with the mechanism after it, and up to
+four sub-bullets follow: size and new pieces, one-way decisions, the
+trade-off, and the evaluator's conditions. Those are what a pick turns on.
+The one-way doors are there because of the Bezos letter quoted above. A new
+piece is what the bar asks to be justified. Everything else stays in the
+agents' returns and prints on `more <n>`. A pick loses none of it, since
+Phase 6 writes the whole direction to the plan file. `/ez:review`'s SOURCES
+records the markdown constraints behind the shape.
+
+The user asked for the recommendation to be stated plainly. It had been
+implied by the numbering, with the reason on a `Ranking:` line at the end.
+It now reads `Recommended: 1.` with the evaluator's reason, and it is the
+evaluator's pick, never this context's. This context reads no code before
+the pick, so an opinion of its own would be the uninformed first idea the
+skill exists to keep out. A layout that put the recommended direction first
+and the rest as deltas against it was turned down. It reads fastest, but it
+would make the alternatives look second-class when the proposer and the
+evaluator disagree, and the user sometimes picks the second direction on
+purpose.
 
 ## What the evidence does not show
 
