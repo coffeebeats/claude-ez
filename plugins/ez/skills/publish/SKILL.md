@@ -6,9 +6,10 @@ description: >-
   adds to docs, then lands the result with `/ez:commit` and pushes it with
   `/ez:pr`, which opens the pull request or updates the one already open. Each
   step keeps its own rules and its own stops. Works in any git repository and
-  any language. Invoked by the user via /ez:publish.
+  any language. Use this when a reviewed branch needs tidying, committing, and
+  a pull request in one run — invoked by the user via /ez:publish, or by the
+  model only when the user asks to publish the branch.
 argument-hint: "[target-branch] [--draft] [manual]"
-disable-model-invocation: true
 allowed-tools: Bash, Read, Grep, Glob, Edit, Skill
 ---
 
@@ -48,6 +49,11 @@ in its place and carry on with the next step.
 `/ez:pr` unchanged; `manual` holds the push for approval of the title and body,
 and leaves `/ez:commit` committing as usual. A target given here also sets the
 base in step 2.
+
+Invoke this skill yourself only when the user asked for the branch to be
+published. A review that came back clean or a fix that just landed is not that
+request: say the branch is ready and leave the run to the user. Pass `manual`
+or `--draft` only when the user asked for it.
 
 ## Workflow
 

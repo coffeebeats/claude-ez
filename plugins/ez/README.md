@@ -28,8 +28,8 @@ agents/plan-evaluator.md  read-only evaluator /ez:plan runs once a round: own re
 
 The chain never advances on its own. The model may start `/ez:plan` when it
 sets out to plan work, and the run stops for the user's pick. Every later step
-runs when the user asks for it, or through `/ez:publish`, which the user
-invokes to run steps 4 to 6 in a row.
+runs when the user asks for it, or through `/ez:publish`, which runs steps 4
+to 6 in a row when the user invokes it or asks the model to publish the branch.
 
 1. `/ez:plan <issue | problem> [notes]` — plans the work before any of it is
    built. Read-only scouts map what already exists in the codebase, and in
@@ -86,7 +86,8 @@ invokes to run steps 4 to 6 in a row.
 done. It runs `/ez:comments` over every file the branch touches, old comments
 included, and `/ez:no-ai-slop` over the docs prose the branch wrote, then
 `/ez:commit` and `/ez:pr`. Each step keeps its own stops. Its arguments pass
-to `/ez:pr`. Only the user can invoke it, since it pushes.
+to `/ez:pr`. The model may invoke it as well as the user, but only when asked
+to publish; a clean review is not that request.
 
 `/ez:review` also runs usefully after step 6, against the open PR, or against
 someone else's PR by number, and again after `/ez:fix`, where it reconciles

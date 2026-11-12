@@ -336,7 +336,7 @@ clear does not need it. Phase 3 asks before the proposer and evaluator run when
 the maps show the problem already solved or the frame already names its fix.
 Nothing is built until the user picks a direction, so such a run spends
 agents but never changes the tree on its own. And in plan mode the run stops
-before Phase 0. `/ez:publish` keeps the flag, since it pushes.
+before Phase 0.
 
 The plan-mode stop refuses rather than calling `ExitPlanMode`. A run writes
 this skill's plan file to the git directory and builds the pick, and plan mode

@@ -4,14 +4,19 @@
 claims below are about Claude Code itself, read from the Claude Code 2.1.319
 binary in November 2026. Re-check them after an upgrade.
 
-## Only the user can invoke it
+## Who can invoke it
 
-The skill frontmatter schema describes `disable-model-invocation` as "If true,
-the model cannot invoke this via the Skill tool; only users can type the slash
-command." The skill pushes and opens a PR, and it exists as the user's
-shorthand, so it sets the flag. Leaving it off would let the model start a push
-whenever review and fixes look finished. The sub-skills keep their own
-invocation rules, and the run calls them through the Skill tool as usual.
+The skill first set `disable-model-invocation`, which the skill frontmatter
+schema describes as "If true, the model cannot invoke this via the Skill tool;
+only users can type the slash command." The skill pushes and opens a PR, and
+the worry was that the model would start a push whenever review and fixes
+looked finished.
+
+On 2026-11-12 the user lifted it, so an agent asked to publish a branch can run
+the skill. Two things answer the original worry. The description names the
+request that calls for the skill, and **Inputs** says a clean review or a
+landed fix is not that request. The sub-skills keep their own invocation rules
+and their own stops, and the run calls them through the Skill tool as usual.
 
 ## The argument hint
 
