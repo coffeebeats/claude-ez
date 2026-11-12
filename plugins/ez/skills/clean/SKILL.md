@@ -34,6 +34,10 @@ evidence stays, and the report says why, so the user can remove it by hand in
 one command. Leaving a finished branch behind costs a line in `git branch`;
 deleting an unfinished one costs the work.
 
+With that evidence, delete without asking; a proof is the approval. The only
+things that wait for the user's word are the ones the hard rules send to the
+Phase 2 question.
+
 **A project skill wins.** If this repository carries its own cleanup skill —
 `.claude/skills/*clean*/SKILL.md` — that skill knows the house conventions and
 this one does not. Name it and stop rather than running.
@@ -274,8 +278,9 @@ here. Otherwise list what was sent, one line each:
 
 Scratch is not listed: Phase 4 deletes it either way. Ask with AskUserQuestion
 what to do, `Keep them all` listed first, then `Delete them all`, then
-`Let me pick`. On the last, take the paths the user names. Ask once; a file
-the user does not name is kept.
+`Let me pick`. On the last, take the paths the user names. With a single item
+on the list, ask about that item by name instead: `Keep it` first, then
+`Delete it`. Ask once; a file the user does not name is kept.
 
 ### Phase 3 — Print the plan
 Print what Phase 4 will do, in the report's shape below with the verbs in the
