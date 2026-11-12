@@ -21,16 +21,19 @@ agents/review-verifier.md read-only verifier /ez:review max runs on each candida
 agents/fix-proposer.md    read-only proposer /ez:fix runs per finding: verdict first, then candidates
 agents/fix-tester.md      read-only tester /ez:fix runs per finding: breaks candidates, picks one
 agents/plan-scout.md      read-only scout /ez:plan runs per focus: maps what exists, never proposes
-agents/plan-proposer.md   read-only proposer /ez:plan runs once a round: directions against the bar
-agents/plan-evaluator.md  read-only evaluator /ez:plan runs once a round: own reuse search, verdicts, rank
+agents/plan-proposer.md   proposer /ez:plan runs once a round, read-only apart from scratch probes: directions against the bar
+agents/plan-evaluator.md  evaluator /ez:plan runs once a round, read-only apart from scratch probes: own reuse search, verdicts, rank
 ```
 
 ## The chain
 
 The chain never advances on its own. The model may start `/ez:plan` when it
-sets out to plan work, and the run stops for the user's pick. Every later step
-runs when the user asks for it, or through `/ez:publish`, which runs steps 4
-to 6 in a row when the user invokes it or asks the model to publish the branch.
+sets out to plan work, and the run stops for the user's pick. The one
+exception is an unattended `/ez:plan --auto` run, which builds unasked only
+when exactly one direction passed and it commits to nothing one-way. Every
+later step runs when the user asks for it, or through `/ez:publish`, which
+runs steps 4 to 6 in a row when the user invokes it or asks the model to
+publish the branch.
 
 1. `/ez:plan <issue | problem> [notes]` — plans the work before any of it is
    built. Read-only scouts map what already exists in the codebase, and in
@@ -41,9 +44,10 @@ to 6 in a row when the user invokes it or asks the model to publish the branch.
    verifiable). A second fresh agent, which never sees the scouts' map,
    searches the code on its own and judges each direction; when none passes,
    one more round runs. It prints the directions that pass, ranked, and
-   stops. On the pick it writes the plan to `<git-dir>/ez-plan.md` and builds
-   it in the same session. The model may invoke it as well as the user. Every
-   run pays for several agents, but nothing is built until the user picks.
+   stops. On the pick it writes the plan to `<git-dir>/ez-plan-<key>.md` and
+   builds it in the same session. The model may invoke it as well as the user. Every
+   run pays for several agents, but nothing is built until the user picks,
+   except in the unattended `--auto` run described above.
    `skills/plan/SOURCES.md` records the evidence behind its shape.
 2. `/ez:review [level] [notes]` — critically reviews the change for
    correctness, reliability, performance, simplicity, and fit with the

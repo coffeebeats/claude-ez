@@ -237,8 +237,9 @@ stale once the user approves it there.
 - `ez-commit-plan.md`, `ez-review.md` — stale when its branch is `landed` or
   no longer exists. When its branch is protected, it described a working tree
   that was not yet on a branch: stale when the tree is clear.
-- `ez-plan.md` — its heading ends in a status. `built` is stale when its
-  branch is `landed`, gone, or protected with a clear tree.
+- `ez-plan-*.md`, one per planned problem, and `ez-plan.md` from older
+  runs — test each on its own. Its heading ends in a status. `built` is
+  stale when its branch is `landed`, gone, or protected with a clear tree.
   `framed` may be a plan whose options are waiting for the user's pick, with
   the scouts' brief only in this file: keep it and name its problem in the
   report. `picked` may be a plan nobody has built yet, or one built with a
@@ -345,7 +346,7 @@ Kept:
 - worktree `.claude/worktrees/probe` — touched within the hour
 - `notes.txt` — untracked, kept at your word
 - 2 stashes
-- `ez-plan.md` — picked, not built: <its problem>
+- `ez-plan-issue-52.md` — picked, not built: <its problem>
 ```
 
 Leave out any line with nothing under it. When nothing needed doing, say so in

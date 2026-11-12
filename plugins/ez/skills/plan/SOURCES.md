@@ -349,6 +349,45 @@ it: to have the plan carried out, the user changes this session's permission
 mode". Only the user can end it there, so the skill stops, says why, and
 leaves rerunning `/ez:plan` to the user.
 
+The description's trigger is written so a model can apply it from the
+request alone: an issue, a change that names no mechanism or could be built
+more than one way, a new component, a public interface, a stored format, a
+dependency. "Its direction needs choosing" asked for a judgment the model can
+only make after reading code, which is the reading the skill exists to keep
+out of this context. The description names `EnterPlanMode` because that is
+the tool the model reaches for otherwise, and the two cannot run together.
+It also states what a run costs, since the model weighs that and nothing
+else in the listing tells it.
+
+`allowed-tools` lists the four commands Phases 0 to 5 run, scoped, plus
+`Read`, `Glob`, `Agent`, and `SendMessage`, which Phase 4 uses to continue
+an evaluator that stopped at its turn limit. The skills page says the field
+grants its tools
+"during the turn that invokes the skill" and that "the grant clears when you
+send your next message", so it never covered the build, which follows the
+user's pick. Unscoped `Bash`, `Write`, and `Edit` approved in advance exactly
+what the hard rules forbid before the pick. `Write` bought nothing either:
+the plan file sits in the git directory, a protected path that prompts
+whatever is allowed (`/ez:fix`'s `SOURCES.md`).
+
+The plan file is named for its problem, `ez-plan-issue-<n>.md` or
+`ez-plan-<branch>.md`, so a plan for one issue does not replace a `picked`
+plan for another in the same checkout. `/ez:clean` matches `ez-plan*.md`.
+
+An unattended run exists because a stop nobody can answer is a dead end.
+The Claude Code subagent docs say AskUserQuestion is not available to
+subagents (paraphrased, not quoted), and a headless run has no one to
+reply. The skill's value to the user is the pick, so an unattended run keeps
+the pick wherever there is one to make: two passing directions, a one-way
+decision, a premise that does not hold, a direction the evaluator found that
+nobody proposed, a second round, or an assumption standing in for a question
+each return the options instead of building. What is left is the case where
+the user's reply would almost always be `1`. The test is a guess at where
+that line sits and has not been measured. The narrowed `allowed-tools`
+matters more here, since an unattended build happens in the invoking turn:
+edits go through the session's own permission settings, not a grant from
+this skill.
+
 A model that invokes the skill has often formed an idea already. **Inputs**
 keeps that idea out of the argument and every dispatch, for the anchoring
 reason the evaluator section gives: a judge handed a prior answer anchors on
@@ -356,6 +395,7 @@ it.
 
 - Claude Code 2.1.319 binary: skill frontmatter schema, plan-mode reminder (offset ~302.959M), plan-mode instructions without `ExitPlanMode` (offset ~302.960M)
 - <https://code.claude.com/docs/en/skills>
+- <https://code.claude.com/docs/en/sub-agents> (tools a subagent does not get)
 
 ## Models
 
@@ -412,6 +452,19 @@ the plan says]", "Found: [actual situation]", "Why this matters:
 - `humanlayer/humanlayer`, `legacy` branch, `.claude/commands/implement_plan.md`
 - `obra/superpowers`, `skills/subagent-driven-development/SKILL.md`
 
+## Why the skill is split across files
+
+The skills page asks for a `SKILL.md` under 500 lines with detail in
+supporting files that load when needed. What a reply to the options means,
+the plan section, and the build live in `build.md`, read only once a
+direction is picked: a run that ends at the options never pays for it, and
+the build is the long stretch where compaction is likely, so the plan file
+carries its own build rules as well. The bar is written out in the proposer's
+and the evaluator's files and only named in `SKILL.md`, because the session
+never judges a direction and three copies had to be kept in step.
+
+- <https://code.claude.com/docs/en/skills>
+
 ## How the options print
 
 The first options list printed nine labeled lines per direction, plus a
@@ -437,6 +490,46 @@ and the rest as deltas against it was turned down. It reads fastest, but it
 would make the alternatives look second-class when the proposer and the
 evaluator disagree, and the user sometimes picks the second direction on
 purpose.
+
+## Why the frame holds outcomes, and what bounds the agents
+
+**Done when holds outcomes, not deliverables.** The evaluator judges against
+**Done when**. If the frame copies an issue's list of things to build into
+it, every direction must build them and the evaluator can only approve: the
+first-idea failure arrives through the frame instead of through the proposer.
+The issue's deliverables go to the proposer as a preference, which is what
+the hard rule on issue text already said about an issue that "says how it
+must be solved".
+
+**The evaluator rules on the premise first.** Every check in the bar asks how
+well a direction solves the problem, and none asked whether anything needs
+building. gstack's "What happens if we do nothing?", quoted above, was
+covered only by the proposer's already-solved slot, which a frame full of
+deliverables rules out. The evaluator answers it before reading the
+directions, against the **Problem** heading. When the premise does not hold,
+the run goes to the user without a second round, since the decision is the
+user's and a round costs a proposer and an evaluator.
+
+**No agent gets the issue.** An issue's text and comments often propose an
+approach. Pointing the evaluator at it undoes the rule that the evaluator
+sees no prior answer, and it hands untrusted text to an agent with a shell.
+The frame is the only statement of the problem an agent sees.
+
+**The evaluator batches its reads and has a turn limit.** Each turn reads the
+agent's whole context again from the cache, so an agent that makes one tool
+call per turn pays for its searching roughly squared. The prompt asks for
+reads in parallel and names a budget, and `maxTurns: 24` is the backstop. The
+Claude Code subagent docs say a subagent that reaches `maxTurns` returns its
+output marked partial and can be resumed (paraphrased, not quoted), which is
+what Phase 4 does, once. The number is a guess, not yet measured.
+
+**Scout maps are capped by size.** "At most forty lines" bounds nothing,
+because a line can be any length. The session pays for each map and holds it
+through the build. The cap is about 3,000 characters, near the low end of
+the "1,000-2,000 tokens" Anthropic's context-engineering post gives for a
+subagent's return.
+
+- <https://code.claude.com/docs/en/sub-agents> (frontmatter table, `maxTurns`)
 
 ## What the evidence does not show
 
