@@ -30,7 +30,9 @@ altitude, CLAUDE.md conventions — each returning candidates with `file`,
 CONFIRMED / PLAUSIBLE / REFUTED; at the highest efforts a gap sweep by a fresh
 reviewer; a ranked, capped list. Phase 2 through Phase 5 here are that recipe,
 widened to the reliability and performance lenses and with the report shape of
-the rest of the chain. Two lines from it are load-bearing and carried over:
+the rest of the chain. Angle I here is extended past the bundled one: it also
+asks which way a new dependency points (reasoning in `/ez:fix`'s `SOURCES.md`
+under Direction). Two lines from it are load-bearing and carried over:
 finders must pass through half-believed candidates because "finders that
 silently drop half-believed candidates bypass the verify step and are the
 dominant cause of misses," and verdicts are "PLAUSIBLE by default" with

@@ -39,12 +39,13 @@ publish the branch.
    built. Read-only scouts map what already exists in the codebase, and in
    published references when the problem needs them. A fresh-context agent
    proposes one to three directions that differ in mechanism, against a
-   written bar (solves it, builds on what exists, at the right layer, as
-   small as done allows, breaks nothing, decides only what it must,
-   verifiable). A second fresh agent, which never sees the scouts' map,
-   searches the code on its own and judges each direction; when none passes,
-   one more round runs. It prints the directions that pass, ranked, and
-   stops. On the pick it writes the plan to `<git-dir>/ez-plan-<key>.md` and
+   written bar (solves it, builds on what exists, at the right layer (module
+   and dependency direction included), as small as done allows, breaks
+   nothing, decides only what it must, verifiable). A second fresh agent,
+   which never sees the scouts' map, searches the code on its own and judges
+   each direction; when none passes, one more round runs. It prints the
+   directions that pass, ranked, and stops. On the pick it writes the plan
+   to `<git-dir>/ez-plan-<key>.md` and
    builds it in the same session. The model may invoke it as well as the user. Every
    run pays for several agents, but nothing is built until the user picks,
    except in the unattended `--auto` run described above.
@@ -67,9 +68,10 @@ publish the branch.
    finding, has a fresh-context agent rule on whether it is real and propose
    two or more fixes against a written bar (resolves the scenario, breaks
    nothing, matches a cited neighbor, names a standard only when one exists,
-   patches the cause not the symptom, as small as it can be, tested the way
-   the repo tests). A second fresh agent tries to break each candidate and
-   picks one. It prints the plan and stops; on approval it applies the
+   patches the cause not the symptom and adds no dependency pointing the
+   wrong way, as small as it can be, tested the way the repo tests). A second
+   fresh agent tries to break each candidate and picks one. It prints the
+   plan and stops; on approval it applies the
    approved fixes in order and records in the review's report what it
    refuted, applied, or the user dismissed, and what each applied fix chose
    over what, so the next `/ez:review` checks the fixes, does not raise the

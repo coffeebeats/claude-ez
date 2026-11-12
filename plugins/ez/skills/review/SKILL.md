@@ -318,7 +318,15 @@ they return.
   simpler form that does the same job.
 - **I — Altitude.** Does the change fix the cause at the right depth, or patch
   a symptom? A special case layered onto shared infrastructure is a sign the
-  fix is too shallow; name the general change it should have been.
+  fix is too shallow; name the general change it should have been. A new
+  reference from general or shared code to specialised code, where the
+  specialised side could have reacted to the general one instead, is a
+  dependency pointing the wrong way even when the fix sits at the cause. That
+  is a call telling one specific component that something happened; a call
+  to a part the general code needs to do its own job, or to a peer neither
+  more general nor more specialised, is not wrong-way. Name where the piece
+  belongs, and show which side is general from the code (the module's role,
+  how many unrelated callers use it).
 
 #### Fit
 - **J — Conventions.** How does neighbouring code do the same thing — the error

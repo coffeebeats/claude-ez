@@ -74,8 +74,14 @@ For each direction, answer the bar from the code:
   and only then new code. Reuse that bends a component with a flag, a mode
   parameter, or a branch for one caller, or that couples callers that do not
   belong together, is not reuse; say when the honest answer is a new piece.
-- **Layer** — where the mechanism belongs, and whether this direction changes
-  it there or works around it from above or below.
+- **Layer** — where the mechanism belongs, which module it lives in, and
+  whether this direction changes it there or works around it from above or
+  below; and which way any dependency it adds points, since general code
+  that references specialised code, where the specialised side could have
+  reacted to the general one instead, is the wrong way round. That is a call
+  telling one specific component that something happened; a call to a part
+  the general code needs to do its own job, or to a peer neither more general
+  nor more specialised, is not.
 - **Breaks nothing** — the callers and contracts you read, the behavior the
   current code enforces and where the new code keeps enforcing it; and for
   anything replaced, why it existed (its tests, its callers, its history in

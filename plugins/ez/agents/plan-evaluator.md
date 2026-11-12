@@ -62,7 +62,14 @@ Check each against the bar, with evidence you read or ran:
    cause, and whether the direction's risks and mitigations cover it.
 4. **Layer.** A special case added on top of shared code where the mechanism
    underneath is reachable is a sign the direction is not deep enough; say
-   where the mechanism is.
+   where the mechanism is. Also check which module the mechanism belongs in
+   and which way the dependencies the direction adds point: general code
+   referencing specialised code, where the specialised side could have
+   reacted to the general one instead, is the wrong way round, even when it
+   solves the problem. That is a call telling one specific component that
+   something happened; a call to a part the general code needs to do its own
+   job, or to a peer neither more general nor more specialised, is not. Say
+   where the piece belongs, citing the code that shows which side is general.
 5. **Size.** Is it the smallest change that meets done? A new abstraction
    earns its place with a second or third real use, or a fit that is plain
    from the code; generality for needs nobody has stated is a cost, not a

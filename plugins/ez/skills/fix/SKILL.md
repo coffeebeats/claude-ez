@@ -91,8 +91,10 @@ The proposer answers each for every candidate; the tester checks the answers.
   library contract, a language reference. "Best practice" with no citation is
   not a reason and does not appear in the plan.
 - **At the right depth.** A guard, catch, retry, flag, or special case added
-  where the cause sits upstream is a band-aid. Trace to the cause before
-  choosing where to patch, and when the deeper fix is out of reach, say so.
+  where the cause sits upstream is a band-aid, and so is a reference from
+  general code to specialised code where the specialised side could have
+  reacted to the general one. Trace to the cause before choosing where to
+  patch, and when the deeper fix is out of reach, say so.
 - **As small as it can be.** The fewest moving parts that fully resolve it. A
   candidate that deletes code beats one that adds, when both resolve it.
 - **Tested the way this repo tests.** Extend the test that covers the function

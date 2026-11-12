@@ -282,7 +282,9 @@ turned into something the evaluator can test against the code.
   it returned 404, so not quoted).
 - **Layer**: the bundled `/code-review` altitude angle, quoted in `/ez:fix`'s
   `SOURCES.md` ("Special cases layered on shared infrastructure are a sign the
-  fix isn't deep enough").
+  fix isn't deep enough"). The Layer check also asks which module the
+  mechanism belongs in and which way its dependencies point; the reasoning
+  is in `/ez:fix`'s `SOURCES.md` under Direction.
 - **Doors**: the Bezos letter above.
 - **Replaces**: Chesterton's fence, in Nygard's form. His ADRs exist because
   the motivation behind a decision gets lost, and "It's better to avoid

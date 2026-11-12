@@ -188,15 +188,18 @@ biases" among the limits of LLM judges; Wang et al. (arXiv 2305.17926) found
 "the quality ranking of candidate responses can be easily hacked by simply
 altering their order of appearance in the context". A proposer that lists its
 favorite first hands the tester its preference by position. So the proposer
-orders candidates by two fields every candidate prints, Depth and then Size:
-those at the cause before those at a symptom, smaller first within each. An
-order computed from printed fields tells the tester nothing it cannot read,
-and whatever lean position gives runs the way the tester's pick already
-does, "at the cause over at the symptom" before "smaller over larger".
-Sorting by size alone would lean the wrong way, since the symptom patch is
-usually the smaller candidate. The bias only reaches the pick among
-candidates that all hold; whether each one holds rests on a re-trace and,
-where one exists, a test run.
+orders candidates by fields every candidate prints, Depth, Fits, and Size,
+with the keys the tester's pick uses, in the same order: at the cause before
+at a symptom, then no wrong-way dependency added before any, then a cited
+neighbor before none, then smaller first. An order computed from printed
+fields tells the tester nothing it cannot read, and whatever lean position
+gives runs the way the tester's pick already does. Sorting by size alone
+would lean the wrong way, since the symptom patch is usually the smaller
+candidate. The cause comes before direction because the evidence for it is
+measured (**Altitude**, below) and the case for direction is one observed
+miss (**Direction**, below). The bias only reaches the pick among candidates
+that all hold; whether each one holds rests on a re-trace and, where one
+exists, a test run.
 
 Anthropic's fix job applies the same rule to its own dispatches: "in no
 dispatch, in this round or the revision round, suggest a path, label, scope,
@@ -235,6 +238,14 @@ between a plausible fix and a merge-worthy fix", that 78.3% of version
 transitions carried substantive reviewer feedback, and that only 3.1% of bugs
 were fixed in the same function as the crash. The proposer is told to trace to
 the cause before choosing where to patch.
+
+**Direction.** The altitude angle asks about depth only, so a fix that makes
+general code reference specialised code passes it. The bar also asks which
+way each new dependency points and where the general piece belongs.
+The principles behind it are the Dependency Inversion Principle and the
+Stable Dependencies Principle (R. C. Martin) and information hiding in
+module decomposition (D. L. Parnas, 1972); none was opened for this wording,
+so none is quoted. The case that prompted it was one observed miss.
 
 **Minimal, one thing.** Kernel `submitting-patches`: "Solve only one problem
 per patch." Google: "the right size for a CL is **one self-contained change**"

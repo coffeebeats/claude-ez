@@ -87,12 +87,13 @@ this one does not. Name it and stop rather than running.
 ## The bar for a direction
 
 Seven checks: solves it, builds on what exists (the first rung is building
-nothing), at the right layer, as small as done allows, breaks nothing,
-decides only what it must, verifiable. Correctness is not traded. The
-proposer answers each for every direction and the evaluator checks the
-answers against the code. The full text lives in their files,
-`agents/plan-proposer.md` and `agents/plan-evaluator.md`, and nowhere else:
-this context never judges a direction, so it does not carry the bar.
+nothing), at the right layer (module and dependency direction included), as
+small as done allows, breaks nothing, decides only what it must, verifiable.
+Correctness is not traded. The proposer answers each for every direction and
+the evaluator checks the answers against the code. The full text lives in
+their files, `agents/plan-proposer.md` and `agents/plan-evaluator.md`, and
+nowhere else: this context never judges a direction, so it does not carry
+the bar.
 
 ## Inputs
 

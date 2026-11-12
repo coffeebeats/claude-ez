@@ -65,19 +65,31 @@ where the cause sits, and go to the second job.
 Trace to the cause before choosing where to patch. The line the review cited
 is where the failure shows; the right change may sit upstream of it, and a
 guard, catch, retry, flag, or special case added at the symptom is a band-aid
-unless the cause genuinely lives there. Then survey how this codebase already
-does the thing you are about to do: Grep the shared and utility modules and
-the files next to the change for the helper, the error type, the logging call,
-the test style. A fix that matches a neighbor beats one that is merely
-correct.
+unless the cause genuinely lives there. Depth also covers direction: a
+candidate that makes general or shared code reference specialised code, where
+the specialised side could have reacted to the general one instead, points
+the dependency the wrong way, even when it resolves the failure at its cause.
+That is a call telling one specific component that something happened; a
+call to a part the general code needs to do its own job, or to a peer neither
+more general nor more specialised, is not wrong-way. Check which module the
+patched code lives in and which way each new reference points; the deeper
+candidate inverts the call through a hook, callback, event, or interface, so
+the specialised side reacts to the general one, and moves the general piece
+to a module the specialised side can reach when it cannot reach it where it
+is. Then survey how this codebase already does the thing you are about to
+do: Grep the shared and utility modules and the files next to the change for
+the helper, the error type, the logging call, the test style. A fix that
+matches a neighbor beats one that is merely correct.
 
 Propose **two or more candidates** whenever more than one mechanism exists,
 and say when only one does and why. Candidates differ in mechanism, not in
 wording: a different place to patch, a different helper, a deletion instead of
-an addition. List those that patch the cause before those that patch a
-symptom, and smaller first within each, so the order follows your Depth and
-Size lines and says nothing else about which one you prefer. For each, answer
-the bar from the code:
+an addition. Order them by these keys, each deciding only among candidates
+tied on every key before it: at the cause before at a symptom; then no
+wrong-way dependency added before any; then a cited neighbor before none;
+then smaller first, a deletion before an addition. The order follows your
+Depth, Fits, and Size lines and says nothing else about which one you prefer.
+For each, answer the bar from the code:
 
 - **Resolves it** — the scenario re-traced against the patched code, and the
   line that now stops it.
@@ -89,8 +101,8 @@ the bar from the code:
   neighbor exists; a repo rule quoted when one applies.
 - **Standard** — a spec, RFC, documented library contract, or language
   reference, named, or "none applies". Never "best practice" on its own.
-- **Depth** — where the cause is, and whether this candidate patches it or
-  the symptom.
+- **Depth** — where the cause is, whether this candidate patches it or the
+  symptom, and which way any new dependency points.
 - **Size** — what it touches, in lines and files. Deletion beats addition
   when both resolve it.
 - **Test** — the existing test to extend, the test to add where the repo
@@ -109,10 +121,11 @@ drive-by cleanups, no fixes to other bugs you notice, even real ones — name
 those in a line at the end instead.
 
 When the right fix is larger than the change under review — the cause sits in
-shared infrastructure, or closing it means touching callers the change did
-not — say so under **Scope**, with the deeper fix in one line, and still give
-the best candidate that stays within the change, marked for what it does not
-close. Never silently widen the change and never silently settle for the
+shared infrastructure, closing it means touching callers the change did not,
+or the general piece belongs in another module the change does not
+touch — say so under **Scope**, with the deeper fix in one line, and still
+give the best candidate that stays within the change, marked for what it does
+not close. Never silently widen the change and never silently settle for the
 band-aid; the user decides. When your dispatch says the user allowed the
 larger fix, it is no longer outside the change: propose it as your
 candidates, against the same bar.
@@ -150,7 +163,7 @@ CANDIDATE A: <mechanism, one sentence>
   Breaks nothing: <callers read; old behavior and where it is kept>
   Fits: <neighbor path:line, or idiom + source>; <repo rule quoted, if any>
   Standard: <named, or "none applies">
-  Depth: <cause location; patches cause | patches symptom>
+  Depth: <cause location; patches cause | patches symptom; new dependency wrong-way | to more general code, a needed part, or a peer | none>
   Size: <lines, files>
   Test: <extend path::test | add path::test | none, because …>
   Diff:

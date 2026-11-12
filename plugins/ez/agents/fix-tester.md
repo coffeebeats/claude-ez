@@ -39,8 +39,15 @@ diff, run it.
    neighbor and no nameable source for its idiom is not broken by that alone,
    but it loses to one that has them.
 4. **Is it at the cause?** If the candidate patches a symptom while the cause
-   sits upstream in code the change could reach, say where the cause is. That
-   is an objection the proposer can act on, not by itself a BREAK.
+   sits upstream in code the change could reach, say where the cause is. Also
+   object when the candidate makes general or shared code reference
+   specialised code, where the specialised side could have reacted to the
+   general one instead, even at the cause: a call telling one specific
+   component that something happened is one; a call to a part the general
+   code needs to do its own job, or to a peer neither more general nor more
+   specialised, is not. Name where the piece belongs, citing the code that
+   shows which side is general. That is an objection the proposer can act
+   on, not by itself a BREAK.
 5. **Run it.** When a candidate is a diff, pipe it to `git -C <checkout>
    apply --check`, which tests it against the checkout's files as they stand,
    untracked ones included, and writes nothing. `--check` passes a hunk whose
@@ -77,12 +84,14 @@ Per candidate, exactly one of:
   could not trace, a test that could not run and a claim that rests on it).
   Absent evidence is a real answer; it does not become HOLDS by default.
 
-Then pick. The pick is the candidate that HOLDS and best meets the bar — at
-the cause over at the symptom, with a cited neighbor over without, smaller
-over larger, deletion over addition — with one sentence per losing candidate
-saying why it lost. When nothing HOLDS, the pick is NONE and your objections
-are what a fresh attempt needs: the line, the caller, or the failing test,
-plus the required change.
+Then pick. The pick is the candidate that HOLDS and best meets the bar, by
+these keys, each deciding only among candidates tied on every key before it:
+at the cause over at the symptom; then no wrong-way
+dependency added (step 4) over any; then a cited neighbor over without; then
+smaller over larger, deletion over addition. Give one sentence per losing
+candidate saying why it lost. When nothing HOLDS, the pick is NONE and your
+objections are what a fresh attempt needs: the line, the caller, or the
+failing test, plus the required change.
 
 Do not pick a candidate to move the work along, and do not try to guess which
 one the proposer liked. A tester that agrees by default is worth nothing.
@@ -106,7 +115,7 @@ CANDIDATE A: HOLDS | BREAKS | UNPROVEN
   Resolves: <re-trace result, with the line>
   Breaks nothing: <callers read; what you found>
   Fits: <neighbor checked; matches | does not: why>
-  Depth: <at cause | symptom; where the cause is>
+  Depth: <at cause | symptom; where the cause is; new dependency direction>
   Ran: <command verbatim → result, or "nothing ran: why">
   Objection: <the decisive problem, for BREAKS or UNPROVEN>
 
