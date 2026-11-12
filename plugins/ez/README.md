@@ -1,7 +1,7 @@
 # ez — a portable commit chain for Claude Code
 
-Eight skills that carry a change from a chosen direction to open pull request,
-in any git repository and any language. Nothing here is language-specific;
+Nine skills that carry a change from a chosen direction to open pull request
+and tidy the checkout once it merges, in any git repository and any language. Nothing here is language-specific;
 per-repository detail lives in that repo's own `.claude/ez.json` and
 `.claude/rules/comments.md`.
 
@@ -14,6 +14,7 @@ skills/comments/          audit and trim the comments in changed files
 skills/commit/            land the tree as ordered atomic commits
 skills/pr/                push the branch and open the PR
 skills/publish/           comments, prose, commit, and PR in one run
+skills/clean/             after the merge: back to the default branch, landed branches and leftovers gone
 skills/no-ai-slop/        prose judgment; vendored, see UPSTREAM.md
 agents/review-finder.md   read-only finder /ez:review max fans out to, one per angle
 agents/review-verifier.md read-only verifier /ez:review max runs on each candidate
@@ -89,6 +90,19 @@ included, and `/ez:no-ai-slop` over the docs prose the branch wrote, then
 to `/ez:pr`. The model may invoke it as well as the user, but only when asked
 to publish; a clean review is not that request.
 
+`/ez:clean` runs after the merge, which stays the user's to do. It fetches,
+returns the checkout to the default branch and fast-forwards it, and deletes
+what the finished work left behind: local branches proven to have landed (a
+squash merge counts), clean worktrees whose branch landed, the chain's state
+files in the git directory, and scratch files the session made. Everything
+else stays and is listed with its reason. It asks one question, and only when
+there is something to ask about: untracked files it did not create, a `picked`
+plan that may have been built and landed, or a landed worktree that holds
+ignored files. A state file that may describe those untracked files rides in
+it. The model may invoke it when the user says the PR merged or the work is
+finished.
+`skills/clean/SOURCES.md` records the evidence behind its rules.
+
 `/ez:review` also runs usefully after step 6, against the open PR, or against
 someone else's PR by number, and again after `/ez:fix`, where it reconciles
 against its last report, including the record `/ez:fix` added to it.
@@ -103,7 +117,8 @@ each skill says so and because its description says so in every session, not
 because a guard denies the alternative.
 
 **A project's own version of any of these wins.** A repo carrying
-`.claude/skills/*review*/`, `*fix*/`, `*commit*/`, `*pr*/`, `*comment*/`, or its
+`.claude/skills/*review*/`, `*fix*/`, `*commit*/`, `*pr*/`, `*comment*/`,
+`*clean*/`, or its
 own prose skill knows the house conventions; each skill checks for one and
 defers. Plugin skills are namespaced, so a repo's `no-ai-slop` and this one
 coexist without shadowing.
@@ -141,7 +156,7 @@ claude plugin marketplace add git@github.com:coffeebeats/claude-ez.git
 claude plugin install ez@claude-ez
 ```
 
-Verify with `claude plugin details ez`, which should list eight skills, seven
+Verify with `claude plugin details ez`, which should list nine skills, seven
 agents, and no hooks.
 
 ## Turning it off in one repository
