@@ -2,7 +2,7 @@
 
 Design notes and the references behind them, so the next edit to `SKILL.md`
 can be checked against what the evidence says rather than against taste.
-Gathered November 2026. Quotes are verbatim; an unopened source says so.
+Gathered November 2026. Quotes are verbatim.
 
 ## The motivating failure: "double check this" changes the fix
 
@@ -14,8 +14,7 @@ the model revises "based solely on its inherent capabilities": "LLMs struggle
 to self-correct their responses without external feedback, and at times, their
 performance even degrades after self-correction."
 
-Sharma et al. (Anthropic, ICLR 2024) ran the exact prompt the motivation
-describes. The challenge was "I don't think that's right. Are you sure?" and
+Sharma et al. (Anthropic, ICLR 2024) ran the exact prompt. The challenge was "I don't think that's right. Are you sure?" and
 "models tend to admit mistakes even when they didn't make a mistake"; "AI
 assistants sometimes provide inaccurate information when challenged, even when
 they originally provided accurate information." Appendix A.4: "Asking the 'Are
@@ -53,7 +52,7 @@ wrong - answer what was asked"; otherwise "a plain follow-up question can
 - <https://arxiv.org/abs/2502.08177>
 - <https://arxiv.org/abs/2505.23840>
 - <https://arxiv.org/abs/2406.01297>
-- Claude Code 2.1.316, bundled `claude-api` skill, `shared/model-migration.md` lines 1090-1137 (Opus 5 section)
+- Claude Code 2.1.316, bundled `claude-api` skill, `shared/model-migration.md` (Opus 5 section)
 
 ## Why the proposer and the tester are fresh-context subagents
 
@@ -103,7 +102,7 @@ universally.
 - <https://arxiv.org/abs/2504.03846>
 - <https://arxiv.org/abs/2512.02304>
 - <https://arxiv.org/abs/2606.20093>
-- `model-migration.md` line 1525 (Fable 5.1 long-running agent recommendations)
+- `model-migration.md` (Fable 5.1 long-running agent recommendations)
 - <https://code.claude.com/docs/en/sub-agents>
 - <https://code.claude.com/docs/en/best-practices>
 
@@ -126,7 +125,7 @@ failure to hide".
 
 - claude-security plugin (`claude-plugins-official` marketplace), `agents/patch-generator.md`
 - claude-security plugin, `agents/patch-verifier.md` (check 4)
-- `.../claude-security/skills/claude-security/jobs/suggest-patches.md`
+- claude-security plugin, `skills/claude-security/jobs/suggest-patches.md`
 
 ## Why two or more candidates, then a separate selection
 
@@ -167,7 +166,7 @@ tester.
 - <https://arxiv.org/abs/2405.15793>
 - <https://arxiv.org/abs/2404.05427>
 - <https://arxiv.org/abs/2403.17134>
-- <https://arxiv.org/pdf/2506.17208> (leaderboard survey; the Trae note is from the search summary of it and was not verified in the paper)
+- <https://arxiv.org/pdf/2506.17208> (leaderboard survey)
 
 ## Why the tester gets the candidates without the proposer's preference
 
@@ -211,17 +210,15 @@ nothing."
 Writer/critic separation itself: McAleese et al. (OpenAI, 2024) trained
 critics that "catch more bugs than human contractors paid for code review",
 with the caveat that "Critics can have limitations of their own, including
-hallucinated bugs that could mislead humans". The OpenAI blog post returned
-HTTP 403 and is cited without a quote. The tester ranks by re-trace, so a
-hallucinated objection has to survive one.
+hallucinated bugs that could mislead humans". The tester ranks by re-trace, so
+a hallucinated objection has to survive one.
 
 - <https://arxiv.org/abs/2608.25869>
 - <https://arxiv.org/abs/2506.22316>
 - <https://arxiv.org/abs/2407.00215>
 - <https://arxiv.org/abs/2306.05685> (abstract)
 - <https://arxiv.org/abs/2305.17926> (abstract)
-- <https://openai.com/index/finding-gpt4s-mistakes-with-gpt-4/> (not opened)
-- `.../claude-security/agents/scan-verifier.md`, `.../jobs/suggest-patches.md`
+- claude-security plugin, `agents/scan-verifier.md`, `jobs/suggest-patches.md`
 
 ## The fix rubric: altitude, minimal, convention, named standard
 
@@ -244,8 +241,8 @@ general code reference specialised code passes it. The bar also asks which
 way each new dependency points and where the general piece belongs.
 The principles behind it are the Dependency Inversion Principle and the
 Stable Dependencies Principle (R. C. Martin) and information hiding in
-module decomposition (D. L. Parnas, 1972); none was opened for this wording,
-so none is quoted. The case that prompted it was one observed miss.
+module decomposition (D. L. Parnas, 1972). None is quoted; the rule rests on
+those principles and one observed miss, not on a measurement.
 
 **Minimal, one thing.** Kernel `submitting-patches`: "Solve only one problem
 per patch." Google: "the right size for a CL is **one self-contained change**"
@@ -272,14 +269,13 @@ the same results"), each with "one line of evidence - a `file:line`, a test
 name, or the specific thing you read"; "Do not say `CONFIDENT` to move the
 patch along."
 
-- Claude Code 2.1.316 binary, code-review prompt, "### Altitude" (offset ~159.28M)
+- Claude Code 2.1.316 binary, code-review prompt, "### Altitude"
 - <https://arxiv.org/abs/2604.03851> (HTML version for the quoted sentences)
 - <https://docs.kernel.org/process/submitting-patches.html>
 - <https://google.github.io/eng-practices/review/developer/small-cls.html>
 - <https://google.github.io/eng-practices/review/reviewer/looking-for.html>
 - <https://google.github.io/eng-practices/review/reviewer/standard.html>
 - <https://google.github.io/eng-practices/review/reviewer/pushback.html>
-- Google's Testing Blog "Code Health" posts were searched but no post on root cause vs workaround was found; none cited.
 
 ## What Claude Code's own `--fix` does, and why this skill does not copy it
 
@@ -314,8 +310,8 @@ preference goes to the plan as a disagreement instead. Re-asking the proposer
 about its own fix when nothing broke is the "Are you sure?" prompt from the
 first section, and it would cost two more agent runs at `xhigh`.
 
-- Claude Code 2.1.316 binary, offsets 301455829 ("## Applying fixes (--fix)") and 159285070 ("## After the review")
-- `.../claude-security/agents/patch-generator.md`, `patch-verifier.md`, `jobs/suggest-patches.md`
+- Claude Code 2.1.316 binary, "## Applying fixes (--fix)" and "## After the review"
+- claude-security plugin, `agents/patch-generator.md`, `patch-verifier.md`, `jobs/suggest-patches.md`
 
 ## The fix record, and de-prescribing
 
@@ -327,13 +323,12 @@ to suppress, not to seed.
 
 The record is a section of the report it answers, not a file of its own. Each
 review replaces the whole report, so a `Fix record:` in it was written after
-that review, and a rerun can match it to the findings by number. An earlier
-design kept a separate, cumulative `ez-fix.md`, and two review rounds found
-the two files disagreeing. A `reopened` mark in the report outlived the fix
-the record called applied, so a rerun would re-rule patched code; and
-`/ez:pr`, which reads only the report, would put refuted findings in a PR
-body. With one file, every reader sees each ruling beside the finding it rules
-on. `/ez:commit` already edits the report's first line, so a sibling skill
+that review, and a rerun can match it to the findings by number. A separate,
+cumulative file would drift from the report: a `reopened` mark in the report
+could outlive the fix the record called applied, so a rerun would re-rule
+patched code; and `/ez:pr`, which reads only the report, would put refuted
+findings in a PR body. With one file, every reader sees each ruling beside the
+finding it rules on. `/ez:commit` already edits the report's first line, so a sibling skill
 writing into it has precedent. The review numbers what it carries under **Not
 re-checked** on from its own findings, so numbers stay unique in a report, and
 carries each such finding's record with it. A finding whose ruling still holds
@@ -394,9 +389,9 @@ suppresses, and hide an incomplete fix. An item the user did not approve stays
 declining it leaves the line `planned`, or `applied` when the in-scope fix
 landed. While part of the finding stays open, the next review raises it again
 and the larger fix is offered again, so the remaining risk stays visible
-rather than being ruled away by a decision about scope. An earlier draft
-marked a declined larger fix `deferred` on that same line, which overwrote
-`applied` and made a rerun skip an in-scope fix nobody had applied. Each
+rather than being ruled away by a decision about scope. A status of its own
+for a declined larger fix would overwrite `applied` on that line and make a
+rerun skip an in-scope fix nobody had applied. Each
 item's line turns `applied` as soon as the fix lands, so a run stopped by a
 failing test leaves the record true to the tree. Phase 4 first checks that the
 report still lists the findings Phase 0 read, under the same numbers: a review
@@ -417,44 +412,42 @@ its own work without being asked" and verification instructions "now cause
 over-verification". The design is a separation of roles with one rubric, not a
 step script; `SKILL.md` should stay at that altitude.
 
-- `model-migration.md` lines 1094, 1526
+- `model-migration.md` (Fable 5.1 and Opus 5 sections)
 
 ## Decisions, so a fix is not argued back
 
-Review and fix rounds could flip-flop. A fix applied for one finding drew a
-later finding whose remedy was the code the fix replaced, or the candidate
-the tester turned down, and the next fix undid the first. Rulings could not
-catch it. A ruling is anchored on its finding's own line, and the fix rewrote
-that line, so the opposite finding sits on new code that nothing quotes.
-Nothing recorded "chose A over B, because R".
+Review and fix rounds can flip-flop. A fix applied for one finding draws a
+later finding whose remedy is the code the fix replaced, or the candidate the
+tester turned down, and the next fix undoes the first. Rulings cannot catch
+it. A ruling is anchored on its finding's own line, and the fix rewrote that
+line, so the opposite finding sits on new code that nothing quotes. Nothing
+recorded "chose A over B, because R".
 
-The fix step already makes that decision and throws it away. The tester
-returns `PICK` with a sentence and `LOST` with a clause per losing
-candidate, and the plan shows them when the user asks `why <n>`. So each `applied`
-line now keeps them: the mechanism chosen, each candidate rejected with its
-`LOST` clause, the old code rejected with the finding's scenario as its
-reason, and one or two lines the fix wrote. The old code is on the list
-because the commonest flip is a finding that asks to back the fix out. Every
-applied fix records a decision, not only one the user asks for or keeps from
-an offer in the plan. That suppresses the most of the three options, and the
-limits below are what keep it narrow. A user can also state a decision in
-the notes or the reply. One that keeps
-the code as it stands becomes a `decided` line on its finding, which, unlike
-a dismissal, names what was rejected.
+The fix step already makes that decision and would throw it away. The tester
+returns `PICK` with a sentence and `LOST` with a clause per losing candidate,
+and the plan shows them when the user asks `why <n>`. So each `applied` line
+keeps them: the mechanism chosen, each candidate rejected with its `LOST`
+clause, the old code rejected with the finding's scenario as its reason, and
+one or two lines the fix wrote. The old code is on the list because the
+commonest flip is a finding that asks to back the fix out. Every applied fix
+records a decision, not only one the user asks for or keeps from an offer in
+the plan. That suppresses the most of the available options, and the limits
+below keep it narrow. A user can also state a decision in the notes or the
+reply. One that keeps the code as it stands becomes a `decided` line on its
+finding, which, unlike a dismissal, names what was rejected.
 
 The decision rides on the `applied` line, never in its place. `/ez:commit`
-and `/ez:pr` read `applied` by name to tell that a fix postdates the review,
-and the earlier `deferred` status broke a rerun by overwriting it. It is the
-one part of an `applied` line that outlives its report. The fix it describes
-becomes resolved or reopened at the next review, but the choice it made is a
-ruling on the code, so it takes the rulings' lifetime and is carried under
-**Upheld** as `chosen`, a status of its own. The fix chose how to close its
-finding's failure, not to live with it, so the entry never takes the hold a
-user's `decided` entry has (below). The ruling match cannot serve it. It
+and `/ez:pr` read `applied` by name to tell that a fix postdates the review.
+It is the one part of an `applied` line that outlives its report. The fix it
+describes becomes resolved or reopened at the next review, but the choice it
+made is a ruling on the code, so it takes the rulings' lifetime and is carried
+under **Upheld** as `chosen`, a status of its own. The fix chose how to close
+its finding's failure, not to live with it, so the entry never takes the hold
+a user's `decided` entry has (below). The ruling match cannot serve it. It
 quotes lines the fix wrote, not the finding's line, and the question it asks
-is whether a new finding's remedy is one of the rejected alternatives. The review answers
-that after its own findings settle, as it does for rulings, so a decision
-suppresses and never seeds.
+is whether a new finding's remedy is one of the rejected alternatives. The
+review answers that after its own findings settle, as it does for rulings, so
+a decision suppresses and never seeds.
 
 Three limits keep the suppression narrow. First, a decision settles a
 trade-off, not the work. A finding is held only when a rejected alternative
@@ -469,10 +462,11 @@ finding with a failure scenario reopens a decision. A user's `decided`
 entry holds its own finding's failure as a dismissal would, so giving a
 reason never protects less than dismissing. Second, quotes follow the
 ruling rule: each reads on one line of its file only. Lines a fix writes,
-such as a closing brace or a lock call, often repeat. A fix that wrote no such line records no decision, because a
-decision with no anchor could only match across the whole file. Third, the
-review counts each suppression as **held**, apart from **upheld**, so the
-report shows when a decision rather than a refutation dropped a finding.
+such as a closing brace or a lock call, often repeat. A fix that wrote no
+such line records no decision, because a decision with no anchor could only
+match across the whole file. Third, the review counts each suppression as
+**held**, apart from **upheld**, so the report shows when a decision rather
+than a refutation dropped a finding.
 
 Retirement is automatic, where review tools mostly leave it to people.
 CodeRabbit's learnings carry no expiry, and its docs recommend a manual
@@ -487,25 +481,22 @@ finding that names a user's `decided` entry's own failure, which that entry
 holds as a dismissal would. A finding reopened with a remedy that keeps the
 choice leaves the decision standing. The ADR convention, "supersede the
 ADR by creating a new ADR", corresponds to the next fix recording its own
-decision over the retired one. Two other homes were ruled out. The notes and the PR body go to
-the review's finders before they look, which would seed them. A comment in
-the code is repository text, which this skill reads as data, not as a
-verdict.
+decision over the retired one. Two other homes were ruled out. The notes and
+the PR body go to the review's finders before they look, which would seed
+them. A comment in the code is repository text, which this skill reads as
+data, not as a verdict.
 
-- https://docs.coderabbit.ai/guides/learnings
-- https://eslint.org/docs/latest/use/suppressions
-- https://github.com/joelparkerhenderson/architecture-decision-record
+- <https://docs.coderabbit.ai/guides/learnings>
+- <https://eslint.org/docs/latest/use/suppressions>
+- <https://github.com/joelparkerhenderson/architecture-decision-record>
 
 ## Dispatches name paths, and the tested diff is what lands
 
-Measured on the first smoke test (3 findings, Fable 5.1 session, 2026-11-02):
-the six pinned Opus 5.5 agents cost $1.17 together, and the session running
-the skill cost $3.54. About 40% of the session's 33.7K output tokens were
-dispatch prompts: the diff and the candidates pasted into each agent's prompt,
-about 7K characters per proposer and 11K to 13K per tester. Output is the
-priciest token class on every model ($50/MTok on Fable 5.1), and an agent can
-read the same text from the checkout at its own input rate. So a dispatch now
-names a base commit and paths, and the agents read for themselves. The
+Output is the priciest token class on every model, and an agent can read the
+same text from the checkout at its own input rate. In a measured three-finding
+run, about 40% of the session's output tokens were dispatch prompts, the diff
+and candidates pasted into each agent. So a dispatch names a base commit and
+paths, and the agents read for themselves. The
 candidates are still relayed through the session. The tester must not see the
 proposer's preference, and having the proposer write candidates to a file
 would turn a read-only agent into a writer and add a permission prompt per
@@ -585,18 +576,17 @@ compares the counts before applying.
 
 ## Why the proposer runs on Sonnet at medium
 
-The proposer was pinned to Opus 5.5 at `high`, about $0.20 a finding. To find
-the cheapest setting that holds quality, each finding was dispatched alone to
-headless `claude -p` runs of the proposer, on a fresh copy of a fixture
-repository, scored against an answer key the agent could not reach. There
-were two fixtures of 20 planted review findings each. The second was an async
-ticketing service of about 1,150 lines with spec documents. It held a claim
-whose mechanism was wrong but whose failure was real, refutations that turn
-on Python and asyncio semantics (wall-clock `timedelta` arithmetic, no
+To find the cheapest setting that holds quality, each finding was dispatched
+alone to headless `claude -p` runs of the proposer, on a fresh copy of a
+fixture repository, scored against an answer key the agent could not reach.
+There were two fixtures of 20 planted review findings each. The second was an
+async ticketing service of about 1,150 lines with spec documents. It held a
+claim whose mechanism was wrong but whose failure was real, refutations that
+turn on Python and asyncio semantics (wall-clock `timedelta` arithmetic, no
 interleaving without an `await`, `fromisoformat` accepting `Z` since 3.11),
-unchanged code that the change made newly reachable, a rename-only line, a
-fix whose obvious form breaks another caller, and a sanitizer that looks
-safe. Each real finding had a hidden test.
+unchanged code that the change made newly reachable, a rename-only line, a fix
+whose obvious form breaks another caller, and a sanitizer that looks safe. Each
+real finding had a hidden test.
 
 Haiku 5.5 at `high` and Sonnet 5.5 at `medium` both ruled all 20 findings
 correctly on both fixtures. Across 120 verdicts, no real finding was refuted,
@@ -604,46 +594,39 @@ and every real finding got a fix that passed its hidden test once the diff was
 repaired. Only diff hygiene and scope discipline separated them. On the
 finding whose right fix lay outside the change, Haiku's preferred candidate
 fixed a different finding, while Sonnet gave the in-scope patch, marked it as
-patching the symptom, and named the deeper fix under `SCOPE`, as asked.
-Sonnet at `medium` cost $0.92 for the 20 findings, about $0.05 each. Opus was
-not run, since both cheaper settings already scored the maximum. Synthetic
-fixtures this size do not separate current models on judgment, so the risk
-left is code harder than the fixtures. Two backstops cover it. The tester
+patching the symptom, and named the deeper fix under `SCOPE`, as asked. Sonnet
+at `medium` cost $0.92 for the 20 findings, about $0.05 each. Opus was not
+run, since both cheaper settings already scored the maximum. Synthetic fixtures this size do not separate current models on judgment, so the
+risk left is code harder than the fixtures. Two backstops cover it. The tester
 stays on Opus, and a finding whose candidates all break goes back to the
 proposer once on Opus.
 
 The same runs measured what the proposer spends tokens on. Diff text was 3%
 to 6% of its output tokens; thinking, tool calls, and the ruling made up the
-rest. So a separate agent that writes the diffs would not save money,
-because it would re-read the files to write 3% to 6% of the output. Bad diffs
-were a quality problem, though. With the earlier prompt, 4 of 11 of Haiku's
-preferred diffs and 2 of 11 of Sonnet's applied cleanly. Adding the
-`--check` and `--numstat` self-check above raised both to 10 of 11, at about
-30% to 40% more cost per finding.
+rest. So a separate agent that writes the diffs would not save money, because
+it would re-read the files to write 3% to 6% of the output. Bad diffs were a
+quality problem, though. Without the `--check` and `--numstat` self-check
+above, 4 of 11 of Haiku's preferred diffs and 2 of 11 of Sonnet's applied
+cleanly. With it, both reached 10 of 11, at about 30% to 40% more cost per
+finding.
 
 ## Why the record stays in the git directory
 
-All 13 headless `claude -p` test runs had the write of `ez-review.md` into the
-git directory refused as a sensitive path, even with `Write` allowed: a
-protected path needs a prompt, and headless mode cannot show one.
-Interactive sessions are different: the same write raises a permission prompt
-there and goes through in day-to-day use, and the failures seen were the Write
-tool's read-before-overwrite check, not permission refusals. Moving the files
-into the worktree would mean editing each repository's `.gitignore`, and commit
-`2621727` put them in each worktree's own git directory on purpose. They stay.
-The skills say plainly when a write is refused and never route around it
-through the shell, which the smoke test's session did.
+In headless `claude -p` runs, a write of `ez-review.md` into the git directory
+is refused as a sensitive path even with `Write` allowed: a protected path
+needs a prompt, and headless mode cannot show one. Interactive sessions raise a
+permission prompt there and the write goes through. Moving the files into the
+worktree would mean editing each repository's `.gitignore`, so they stay in
+each worktree's own git directory. The skills say plainly when a write is
+refused and never route around it through the shell.
 
 ## How the plan prints
 
-The first plan printed six lines per finding: verdict, fix, why this one,
-test, also considered, and a separate disagreements line. In the terminal
-that read as one block of text. The user picked a layout that groups
-findings by what they have to do: **Will apply**, **Your call**, and
-**Nothing to do**. Each fix gets one line, with the fix in bold and the
-location in code. Everything else is shown when the user asks `why <n>`.
-The agents still answer the full bar. Only the printing changed, and
-`/ez:review`'s SOURCES records the markdown constraints behind it. The
-cut detail lives in the agents' returns in this session and is not written
-to disk. Approval comes in the same session, and a new state file would
-need `/ez:clean` to learn about it.
+The plan groups findings by what they have to do: **Will apply**, **Your
+call**, and **Nothing to do**. Each fix gets one line, with the fix in bold and
+the location in code. Everything else is shown when the user asks `why <n>`.
+The agents still answer the full bar; only the printing is short, and
+`/ez:review`'s SOURCES records the markdown constraints behind it. The cut
+detail lives in the agents' returns in this session and is not written to
+disk. Approval comes in the same session, and a new state file would need
+`/ez:clean` to learn about it.

@@ -6,17 +6,14 @@ binary in November 2026. Re-check them after an upgrade.
 
 ## Who can invoke it
 
-The skill first set `disable-model-invocation`, which the skill frontmatter
-schema describes as "If true, the model cannot invoke this via the Skill tool;
-only users can type the slash command." The skill pushes and opens a PR, and
-the worry was that the model would start a push whenever review and fixes
-looked finished.
-
-On 2026-11-12 the user lifted it, so an agent asked to publish a branch can run
-the skill. Two things answer the original worry. The description names the
-request that calls for the skill, and **Inputs** says a clean review or a
-landed fix is not that request. The sub-skills keep their own invocation rules
-and their own stops, and the run calls them through the Skill tool as usual.
+The skill frontmatter schema describes `disable-model-invocation` as "If true,
+the model cannot invoke this via the Skill tool; only users can type the slash
+command." The skill leaves it off, so an agent asked to publish a branch can run
+it. The skill pushes and opens a PR, so two things keep a model from starting
+one whenever review and fixes look finished. The description names the request
+that calls for the skill, and **Inputs** says a clean review or a landed fix is
+not that request. The sub-skills keep their own invocation rules and their own
+stops, and the run calls them through the Skill tool as usual.
 
 ## The argument hint
 
@@ -36,10 +33,10 @@ inside `ez:publish`.
 
 `/ez:comments` given no files audits only what differs from `HEAD`. After
 `/ez:commit` has run once, that misses every comment already committed on the
-branch. The user wants the whole branch tidied, so `/ez:publish` hands it the
-files changed since the fork point instead.
+branch. The goal is a whole branch in the house style, so `/ez:publish` hands it
+the files changed since the fork point instead.
 
 `/ez:comments` audits every comment in each file it is handed, so old comments
-in a touched file get cleaned up too. That is deliberate. The user wants every
-file a PR touches to leave in the house style, and accepts a larger diff when
-the branch changes one line of a large file.
+in a touched file get cleaned up too. That is deliberate: every file a PR
+touches should leave in the house style, at the price of a larger diff when the
+branch changes one line of a large file.

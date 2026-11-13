@@ -34,10 +34,8 @@ branch with no PR, it opens one with a generated title (`createMissingPRs`,
   `--base` and the whole chain in this form.
 
 A stack keeps its merged PRs. `syncStack` sends them because the API rejects a
-list without them (`cmd/submit.go:705`). The closed stacks in
-`coffeebeats/godot-plugin-std` still list every merged PR, so the whole-chain
-form cannot extend a stack once its bottom has merged. Appending by stack
-number can.
+list without them (`cmd/submit.go:705`). So the whole-chain form cannot extend
+a stack once its bottom has merged. Appending by stack number can.
 
 ## Finding a PR's stack
 

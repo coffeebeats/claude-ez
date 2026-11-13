@@ -41,7 +41,7 @@ analysis is the reason reuse in the bar cuts both ways: agents wrote extra
 code "mainly because agent-written libraries are rigid or hard to use, not
 because capabilities are missing."
 
-- Claude Code 2.1.319 binary, plan-mode workflow (offsets ~302.958M-302.966M)
+- Claude Code 2.1.319 binary, plan-mode workflow
 - <https://developers.openai.com/cookbook/examples/gpt-5/codex_prompting_guide> (fetched as `examples/gpt-5/codex_prompting_guide.ipynb` in `openai/openai-cookbook`)
 - <https://www.gitclear.com/ai_assistant_code_quality_2025_research>
 - <https://arxiv.org/abs/2609.36730> (abstract)
@@ -134,8 +134,7 @@ strawman shown to the user teaches nothing. superpowers states the escape
 hatch the proposer uses instead: "When there's genuinely one sensible way, say
 so in that message and explain why the others don't fit".
 
-One proposer rather than one per slot is a cost decision, made with the user
-on 2026-11-07. `feature-dev` and plan mode get their diversity from separate
+One proposer rather than one per slot is a cost decision. `feature-dev` and plan mode get their diversity from separate
 agents, each told to "Make confident architectural choices rather than
 presenting multiple options", and the fixation result favors separate calls.
 But the failure this skill targets is mostly a missing fact (the component
@@ -155,9 +154,9 @@ one proposer per slot.
 
 ## What a direction holds, and how much detail
 
-The user's requirement: enough detail that it is clear how the solution works,
-with the implementation still filling in the details. Every source agrees the
-line sits at design, not code.
+The requirement is enough detail that it is clear how the solution works, with
+the implementation still filling in the details. Every source agrees the line
+sits at design, not code.
 
 - superpowers: "That is the whole requirement: unambiguous, not complete";
   "A plan is the set of decisions the implementer cannot make alone. A plan
@@ -300,8 +299,8 @@ turned into something the evaluator can test against the code.
 
 ## Why two rounds, then the user
 
-The user set the cap: if nothing passes, one more round, then stop. The
-evidence agrees there is little to gain from more. Multi-agent debate, the
+The cap is one more round if nothing passes, then stop. The evidence says
+there is little to gain from more. Multi-agent debate, the
 nearest thing to an open-ended propose-and-critique loop, measured by Smit et
 al.: "multi-agent debating systems, in their current form, do not reliably
 outperform other proposed prompting strategies, such as self-consistency and
@@ -323,117 +322,109 @@ with stated objections, and the second has to answer each one.
 
 ## Who can invoke it
 
-The skill first set `disable-model-invocation`, which the 2.1.319 skill
-frontmatter schema describes as "If true, the model cannot invoke this via the
-Skill tool; only users can type the slash command." The worry was cost. A run
-sends up to four scouts and two Opus agents, four with a second round, and a
-passing question about how to approach something could start one. The Claude
-Code skills docs recommend the flag for "actions you want to invoke directly
-with `/skill-name` rather than letting Claude decide when to run them."
-
-On 2026-11-08 the user lifted it, so the model can run the skill when it sets
-out to plan work. Four things bound what a run the model starts can cost. The
-description says when to use the skill and that a change whose fix is already
-clear does not need it. Phase 3 asks before the proposer and evaluator run when
-the maps show the problem already solved or the frame already names its fix.
-Nothing is built until the user picks a direction, so such a run spends
-agents but never changes the tree on its own. And in plan mode the run stops
-before Phase 0.
+The skill frontmatter schema describes `disable-model-invocation` as "If true,
+the model cannot invoke this via the Skill tool; only users can type the slash
+command." The Claude Code skills docs recommend the flag for "actions you want
+to invoke directly with `/skill-name` rather than letting Claude decide when to
+run them." The skill leaves it off, so the model can run it when it sets out to
+plan work, which means a passing question could start a run of up to four
+scouts and two Opus agents, four with a second round. Four things bound the
+cost. The description says when to use the skill and that a change whose fix is
+already clear does not need it. Phase 3 asks before the proposer and evaluator
+run when the maps show the problem already solved or the frame already names
+its fix. Nothing is built until the user picks a direction, so such a run
+spends agents but never changes the tree on its own. And in plan mode the run
+stops before Phase 0.
 
 The plan-mode stop refuses rather than calling `ExitPlanMode`. A run writes
 this skill's plan file to the git directory and builds the pick, and plan mode
 forbids both. The 2.1.319 reminder says "you MUST NOT make any edits (with the
 exception of the plan file mentioned below), run any non-readonly tools", and
 the file it exempts is plan mode's own plan file, not this skill's. In some
-sessions the run cannot leave plan mode at all. The plan-mode instructions for a session without `ExitPlanMode` say "You
-cannot leave plan mode yourself, and the user's approval alone does not end
-it: to have the plan carried out, the user changes this session's permission
-mode". Only the user can end it there, so the skill stops, says why, and
-leaves rerunning `/ez:plan` to the user.
+sessions the run cannot leave plan mode at all. The plan-mode instructions for
+a session without `ExitPlanMode` say "You cannot leave plan mode yourself, and
+the user's approval alone does not end it: to have the plan carried out, the
+user changes this session's permission mode". Only the user can end it there,
+so the skill stops, says why, and leaves rerunning `/ez:plan` to the user.
 
-The description's trigger is written so a model can apply it from the
-request alone: an issue, a change that names no mechanism or could be built
-more than one way, a new component, a public interface, a stored format, a
-dependency. "Its direction needs choosing" asked for a judgment the model can
-only make after reading code, which is the reading the skill exists to keep
-out of this context. The description names `EnterPlanMode` because that is
-the tool the model reaches for otherwise, and the two cannot run together.
-It also states what a run costs, since the model weighs that and nothing
-else in the listing tells it.
+The description's trigger is written so a model can apply it from the request
+alone: an issue, a change that names no mechanism or could be built more than
+one way, a new component, a public interface, a stored format, a dependency.
+"Its direction needs choosing" asks for a judgment the model can only make
+after reading code, which is the reading the skill exists to keep out of this
+context. The description names `EnterPlanMode` because that is the tool the
+model reaches for otherwise, and the two cannot run together. It also states
+what a run costs, since the model weighs that and nothing else in the listing
+tells it.
 
 `allowed-tools` lists the four commands Phases 0 to 5 run, scoped, plus
-`Read`, `Glob`, `Agent`, and `SendMessage`, which Phase 4 uses to continue
-an evaluator that stopped at its turn limit. The skills page says the field
-grants its tools
-"during the turn that invokes the skill" and that "the grant clears when you
-send your next message", so it never covered the build, which follows the
-user's pick. Unscoped `Bash`, `Write`, and `Edit` approved in advance exactly
-what the hard rules forbid before the pick. `Write` bought nothing either:
-the plan file sits in the git directory, a protected path that prompts
-whatever is allowed (`/ez:fix`'s `SOURCES.md`).
+`Read`, `Glob`, `Agent`, and `SendMessage`, which Phase 4 uses to continue an
+evaluator that stopped at its turn limit. The skills page says the field grants
+its tools "during the turn that invokes the skill" and that "the grant clears
+when you send your next message", so it never covers the build, which follows
+the user's pick. Unscoped `Bash`, `Write`, and `Edit` would approve in advance
+exactly what the hard rules forbid before the pick. `Write` buys nothing
+either: the plan file sits in the git directory, a protected path that prompts
+whatever is allowed.
 
 The plan file is named for its problem, `ez-plan-issue-<n>.md` or
 `ez-plan-<branch>.md`, so a plan for one issue does not replace a `picked`
 plan for another in the same checkout. `/ez:clean` matches `ez-plan*.md`.
 
-An unattended run exists because a stop nobody can answer is a dead end.
-The Claude Code subagent docs say AskUserQuestion is not available to
-subagents (paraphrased, not quoted), and a headless run has no one to
-reply. The skill's value to the user is the pick, so an unattended run keeps
-the pick wherever there is one to make: two passing directions, a one-way
-decision, a premise that does not hold, a direction the evaluator found that
-nobody proposed, a second round, or an assumption standing in for a question
-each return the options instead of building. What is left is the case where
-the user's reply would almost always be `1`. The test is a guess at where
-that line sits and has not been measured. The narrowed `allowed-tools`
-matters more here, since an unattended build happens in the invoking turn:
-edits go through the session's own permission settings, not a grant from
-this skill.
+An unattended run exists because a stop nobody can answer is a dead end. The
+Claude Code subagent docs say AskUserQuestion is not available to subagents
+(paraphrased, not quoted), and a headless run has no one to reply. The skill's
+value is the pick, so an unattended run keeps the pick wherever there is one
+to make: two passing directions, a one-way decision, a premise that does not
+hold, a direction the evaluator found that nobody proposed, a second round, or
+an assumption standing in for a question each return the options instead of
+building. What is left is the case where the user's reply would almost always
+be `1`. The test is a guess at where that line sits and has not been measured.
+The narrowed `allowed-tools` matters more here, since an unattended build
+happens in the invoking turn: edits go through the session's own permission
+settings, not a grant from this skill.
 
 A model that invokes the skill has often formed an idea already. **Inputs**
 keeps that idea out of the argument and every dispatch, for the anchoring
 reason the evaluator section gives: a judge handed a prior answer anchors on
 it.
 
-- Claude Code 2.1.319 binary: skill frontmatter schema, plan-mode reminder (offset ~302.959M), plan-mode instructions without `ExitPlanMode` (offset ~302.960M)
+- Claude Code 2.1.319 binary: skill frontmatter schema, plan-mode reminder, plan-mode instructions without `ExitPlanMode`
 - <https://code.claude.com/docs/en/skills>
 - <https://code.claude.com/docs/en/sub-agents> (tools a subagent does not get)
 
 ## Models
 
 Scouts run on Sonnet at `medium`, the proposer on Opus at `medium`, and the
-evaluator on Opus at `high`, chosen with the user on 2026-11-07 on the
-pattern `/ez:fix` measured: a cheaper first proposal, a strong judge, and
-escalation when the judge passes nothing. The proposer stays on Opus, unlike
-`/ez:fix`'s Sonnet proposer, because that result came from bounded fixtures
-where the cause is given; choosing a direction is the open-ended part and
-nobody has measured Sonnet on it. It runs at `medium` because it does not
-find reuse alone. None of this is measured for `/ez:plan` yet. Check cost and
-quality on its first real runs before tuning, rather than on synthetic
-fixtures, which saturated in the `/ez:fix` tests.
+evaluator on Opus at `high`, on the pattern `/ez:fix` measured: a cheaper first
+proposal, a strong judge, and escalation when the judge passes nothing. The
+proposer stays on Opus, unlike `/ez:fix`'s Sonnet proposer, because that result
+came from bounded fixtures where the cause is given; choosing a direction is
+the open-ended part and nobody has measured Sonnet on it. It runs at `medium`
+because it does not find reuse alone. None of this is measured for `/ez:plan`
+yet, so check cost and quality on real runs before tuning; synthetic fixtures
+saturated in the `/ez:fix` tests.
 
 ## Handing off: build in this session
 
 The pick starts the build in the same session. Three other exits were
-considered.
+rejected.
 
 Plan mode's approval card. `ExitPlanMode` shows the plan for approval, and
 when approved with context cleared, the new context starts with "Implement the
-following plan:" and the plan, plus a pointer to the old transcript ("If you
-need specific details from before exiting plan mode ... read the full
-transcript at:"). But in 2.1.319 that option is off by default: the settings
-schema describes `showClearContextOnPlanAccept` as "When true, the
+following plan:" and the plan. But in 2.1.319 that option is off by default:
+the settings schema describes `showClearContextOnPlanAccept` as "When true, the
 plan-approval dialog offers a "clear context" option. Defaults to false."
 Without it the card only switches permission modes, which the user's own
 settings already decide, and entering plan mode costs a consent prompt. The
-user chose the simpler exit. The plan file keeps the clean-context route open
-by hand: `hold`, then `/clear`, then ask to build the plan.
+plan file keeps the clean-context route open by hand: `hold`, then `/clear`,
+then ask to build the plan.
 
-An implementer subagent. Rejected: the user cannot steer it mid-way, it
-returns a summary in the same confident register whether or not it drifted,
-and per the best-practices line above, delegating a task does not improve it.
-superpowers dispatches a subagent per task, but with a reviewer after each;
-here the build gets `/ez:review` at the end.
+An implementer subagent. The user cannot steer it mid-way, it returns a summary
+in the same confident register whether or not it drifted, and per the
+best-practices line above, delegating a task does not improve it. superpowers
+dispatches a subagent per task, but with a reviewer after each; here the build
+gets `/ez:review` at the end.
 
 A prompt to hand elsewhere. The plan file is that prompt: written to be
 self-contained, as ExecPlans require ("Every ExecPlan must be fully
@@ -450,7 +441,7 @@ found, and why it matters, is HumanLayer's `implement_plan` ("Expected: [what
 the plan says]", "Found: [actual situation]", "Why this matters:
 [explanation]").
 
-- Claude Code 2.1.319 binary: settings schema (offset ~162.968M), plan-exit handling (offset ~326.668M)
+- Claude Code 2.1.319 binary: settings schema, plan-exit handling
 - `humanlayer/humanlayer`, `legacy` branch, `.claude/commands/implement_plan.md`
 - `obra/superpowers`, `skills/subagent-driven-development/SKILL.md`
 
@@ -469,29 +460,23 @@ never judges a direction and three copies had to be kept in step.
 
 ## How the options print
 
-The first options list printed nine labeled lines per direction, plus a
-problem recap and an already-here list. In the terminal it read as one block
-of text, and no part of it stood out. The user picked a card per direction
-out of three mock-ups, the same shape as `/ez:review`'s findings and
-`/ez:fix`'s plan. The name is in bold, with the mechanism after it, and up to
-four sub-bullets follow: size and new pieces, one-way decisions, the
-trade-off, and the evaluator's conditions. Those are what a pick turns on.
-The one-way doors are there because of the Bezos letter quoted above. A new
-piece is what the bar asks to be justified. Everything else stays in the
-agents' returns and prints on `more <n>`. A pick loses none of it, since
-Phase 6 writes the whole direction to the plan file. `/ez:review`'s SOURCES
-records the markdown constraints behind the shape.
+Each direction prints as a card: the name in bold with the mechanism after it,
+then up to four sub-bullets for size and new pieces, one-way decisions, the
+trade-off, and the evaluator's conditions. Those are what a pick turns on. The
+one-way doors are there because of the Bezos letter quoted above. A new piece
+is what the bar asks to be justified. Everything else stays in the agents'
+returns and prints on `more <n>`. A pick loses none of it, since Phase 6 writes
+the whole direction to the plan file. `/ez:review`'s SOURCES records the
+markdown constraints behind the shape.
 
-The user asked for the recommendation to be stated plainly. It had been
-implied by the numbering, with the reason on a `Ranking:` line at the end.
-It now reads `Recommended: 1.` with the evaluator's reason, and it is the
-evaluator's pick, never this context's. This context reads no code before
-the pick, so an opinion of its own would be the uninformed first idea the
-skill exists to keep out. A layout that put the recommended direction first
-and the rest as deltas against it was turned down. It reads fastest, but it
-would make the alternatives look second-class when the proposer and the
-evaluator disagree, and the user sometimes picks the second direction on
-purpose.
+The recommendation is stated plainly as `Recommended: 1.` with the evaluator's
+reason, and it is the evaluator's pick, never this context's. This context
+reads no code before the pick, so an opinion of its own would be the
+uninformed first idea the skill exists to keep out. A layout that put the
+recommended direction first and the rest as deltas against it was rejected: it
+reads fastest, but it makes the alternatives look second-class when the
+proposer and the evaluator disagree, and picking the second direction on
+purpose is legitimate.
 
 ## Why the frame holds outcomes, and what bounds the agents
 

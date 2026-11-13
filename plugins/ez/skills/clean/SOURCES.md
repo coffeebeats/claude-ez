@@ -18,9 +18,8 @@ It also recommends a plan, validate, execute sequence for destructive changes.
 The skill follows both. Phase 1 classifies and writes nothing, Phase 3 prints
 the plan, and Phase 4 runs fixed commands in a fixed order.
 
-The plan is not a gate. The chain already dropped the approval stops the user
-always approved, and a deletion backed by proof that the work is elsewhere is
-that kind of stop. One question remains, about untracked files the session did
+The plan is not a gate. A deletion backed by proof that the work is elsewhere
+needs no approval stop. One question remains, about untracked files the session did
 not create and a `picked` plan that looks built and landed: its branch is
 finished and commits on the default branch have touched its files since. No
 command can tell whether an untracked file is wanted, and deleting it has no
@@ -30,9 +29,7 @@ criterion, so the heading cannot settle it. A state file that may describe
 those untracked files rides in that question rather than adding a second one;
 see **State files**. A landed worktree that holds ignored files rides in the
 same question, since removing it deletes them, unless every one is a
-directory a tool provably generated; see **Generated directories**. Asking
-about a `.godot/` or a `.venv/` on every cleanup was a stop the user always
-approved.
+directory a tool provably generated; see **Generated directories**.
 
 ## Finding the default branch
 
@@ -153,9 +150,9 @@ worktree the user made by hand gets the same protection.
 
 ### Worktrees with submodules
 
-The first version never forced, so it never removed a worktree with an
-initialized submodule, and in a repository with submodules every landed
-worktree stayed. Tested in a scratch superproject holding a submodule that
+Git refuses a plain `remove` on any worktree with an initialized submodule, so
+without forcing, every landed worktree in such a repository would stay. Tested
+in a scratch superproject holding a submodule that
 holds another, with each linked worktree made by `worktree add` and
 `submodule update --init --recursive`:
 
@@ -293,8 +290,8 @@ the row is left out. The name alone is not enough: kondo's own list has
 `.godot/` "project cache data" to ignore "to avoid bloating your version
 control repository with generated data"
 (<https://docs.godotengine.org/en/stable/tutorials/best_practices/version_control_systems.html>).
-GitHub's Godot template lists `.import/` with `.godot/`, under Godot-specific
-ignores (<https://github.com/github/gitignore/blob/main/Godot.gitignore>).
+GitHub's Godot template lists `.import/` with `.godot/`
+(<https://github.com/github/gitignore/blob/main/Godot.gitignore>).
 
 In a scratch repository tracking `game/project.godot` and `src/app.py`,
 `git ls-files -- ':(glob)game/project.godot'` printed it, and
@@ -302,11 +299,6 @@ In a scratch repository tracking `game/project.godot` and `src/app.py`,
 plain pathspec `src/*.py` printed both. Without `:(glob)`, a `*` in a
 pathspec matches across `/`, so a `.py` file anywhere below would vouch for a
 directory it never generated.
-
-This is a change from the first version of the skill, which sent every
-landed worktree holding ignored files to the question. The reason it gave, no
-command tells a cache from a `.env`, still holds for git; the test above is
-the evidence that was missing.
 
 ## State files
 
@@ -378,9 +370,9 @@ does not drop it.
 The Claude Code skills page says to "use `disable-model-invocation: true` for
 workflows with side effects or that you want to control timing"
 (<https://code.claude.com/docs/en/skills>). The skill leaves it off, as
-`/ez:publish` does. The user asked for cleanup to follow from saying the work
-is done, without typing the command. The description and **Inputs** name the
-requests that count, and say that opening a PR is not one.
+`/ez:publish` does, so cleanup can follow from saying the work is done without
+typing the command. The description and **Inputs** name the requests that
+count, and say that opening a PR is not one.
 
 The same page says `allowed-tools` "does not restrict which tools are
 available"; it pre-approves them for the turn. It lists `Bash` unscoped, as
