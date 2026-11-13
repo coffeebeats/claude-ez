@@ -104,9 +104,10 @@ files in the git directory, and scratch files the session made. Everything
 else stays and is listed with its reason. It asks one question, and only when
 there is something to ask about: untracked files it did not create, a `picked`
 plan that may have been built and landed, or a landed worktree that holds
-ignored files. A state file that may describe those untracked files rides in
-it. The model may invoke it when the user says the PR merged or the work is
-finished.
+ignored files other than directories a tool provably generated, such as
+`.venv/` or `.godot/`. A state file that may describe those untracked files
+rides in it. The model may invoke it when the user says the PR merged or the
+work is finished.
 `skills/clean/SOURCES.md` records the evidence behind its rules.
 
 `/ez:review` also runs usefully after step 6, against the open PR, or against

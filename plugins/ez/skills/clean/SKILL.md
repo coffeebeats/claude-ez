@@ -9,11 +9,12 @@ description: >-
   skills keep in the git directory, and scratch files this session made.
   Anything it cannot prove is finished stays and is listed with the reason:
   unmerged branches, dirty worktrees, tracked changes, stashes. A landed
-  worktree that holds ignored files is removed only on the user's word.
-  Only reads a remote, never writes to it, never forces, never discards
-  uncommitted work. Works in any git repository and any language. Use this
-  when work is done and the checkout should go back to a clean default branch,
-  in preference to running `git branch -D`, `git worktree remove`, or
+  worktree that holds ignored files is removed only on the user's word,
+  unless each is a directory a tool provably generated, such as `.venv` or
+  `.godot`. Only reads a remote, never writes to it, never forces, never
+  discards uncommitted work. Works in any git repository and any language. Use
+  this when work is done and the checkout should go back to a clean default
+  branch, in preference to running `git branch -D`, `git worktree remove`, or
   `git clean` directly — invoked by the user via /ez:clean, or by the model
   when the user says the PR merged or the work is finished, or asks to clean
   up.
@@ -52,9 +53,11 @@ this one does not. Name it and stop rather than running.
   `git switch` or `git worktree remove`. Tracked changes stay exactly where
   they are.
 - NEVER run `git clean` without naming each path, and never with `-x` or `-X`.
-  Ignored files are not this skill's: they hold build caches that cost time to
-  rebuild and `.env` files that cannot be rebuilt, so a worktree holding them
-  is removed only on the user's word.
+  Ignored files hold build caches that cost time to rebuild and `.env` files
+  that cannot be rebuilt, and git cannot tell the two apart. The checkout's
+  own are never touched. A landed worktree holding them is removed only on the
+  user's word, unless every one is a directory **Generated directories**
+  proves a tool made.
 - Delete a branch only on one of the four proofs in **When a branch has
   landed**. An upstream marked `[gone]` is not one, since closing a PR unmerged
   deletes the remote branch too. Neither is age, a name, or the user having
@@ -69,8 +72,8 @@ this one does not. Name it and stop rather than running.
   otherwise. Deleting one has no undo, so that is the one question this skill
   stops for. A `picked` plan that may have been built rides in the same
   question, and so do a state file that may describe those files and a landed
-  worktree that holds ignored files, which `git worktree remove` would delete
-  with it.
+  worktree that holds an ignored entry **Generated directories** does not
+  clear, which `git worktree remove` would delete with it.
 - Print every branch you delete with its tip SHA. That line is the undo:
   `git branch <name> <sha>` restores it until git's garbage collection runs.
 
@@ -213,11 +216,14 @@ than the one this session is in:
   The throwaway worktrees `/ez:review`, `/ez:commit`, and `/ez:fix` make are
   detached at a branch's commit, so one that outlived a crashed run qualifies.
   A worktree under `.claude/worktrees/` gets the same test as any other.
-- When its work is elsewhere and that status prints only `!!` lines, it goes
-  to Phase 2 and is removable once the user approves it there.
-  `git worktree remove` deletes ignored files without complaint, and no
-  command tells a `node_modules/` that costs a rebuild from a `.env` that
-  cannot be rebuilt. `--untracked-files=normal` overrides
+- When its work is elsewhere and that status prints only `!!` lines, sort
+  each entry those lines name as Generated or Unknown, by **Generated
+  directories** below. When every entry is Generated, the worktree is
+  removable, and the report names the entries removed with it. With any
+  Unknown entry it goes to Phase 2 and is removable once the user approves it
+  there. `git worktree remove` deletes ignored files without complaint, and
+  git has no notion of a file that can be rebuilt, so the evidence has to come
+  from the entry itself. `--untracked-files=normal` overrides
   `status.showUntrackedFiles`, which at `no` hides every line and at `all`
   lists each file of an ignored directory on its own line.
 - Anything else is kept: uncommitted or untracked files, a branch that has
@@ -225,6 +231,50 @@ than the one this session is in:
   not approve.
 
 A branch checked out in a kept worktree is kept with it.
+
+**Generated directories.** An ignored entry of a landed worktree is Generated
+when all three of these hold, and Unknown otherwise, whatever its name
+suggests:
+
+1. It is a directory: its `!!` line ends in `/`. A file, a `.env` or a
+   `local.settings.json`, is never Generated.
+2. No `.git` lies anywhere inside it:
+   `find "<path>/<entry>" -name .git -print -quit` prints nothing. A nested
+   repository, such as an editable install's checkout under `.venv/src/`, may
+   hold commits that exist nowhere else.
+3. A tool's evidence is on it, one of:
+   - **A marker** at the top of the entry, written by a tool with a stated
+     meaning: a regular file, not a symlink, named `CACHEDIR.TAG` whose first
+     43 bytes are `Signature: 8a477f597d28d172789f06886806bc55`; or a
+     `pyvenv.cfg`, which every Python virtual environment holds. A
+     `.gitignore` containing `*` is not a marker, since people hide a private
+     folder that way.
+   - **A row of the table below**: the entry's last path component is one of
+     the row's directories, and the worktree tracks one of the row's project
+     files in the directory that holds the entry.
+     `git -C <path> ls-files -- ':(glob)<parent>/<file>'` prints it, with
+     `<parent>/` dropped for an entry at the root. The `:(glob)` keeps a `*`
+     from matching across `/`.
+
+| Project file beside it | Directories it generates |
+|---|---|
+| `project.godot` | `.godot/`, `.import/` |
+| `*.py` | `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/`, `.tox/`, `.nox/` |
+| `package.json` | `node_modules/`, `.angular/` |
+| `turbo.json` | `.turbo/` |
+| `Cargo.toml`, `pom.xml` | `target/` |
+| `build.gradle`, `build.gradle.kts` | `.gradle/`, `build/` |
+| `*.csproj`, `*.fsproj` | `bin/`, `obj/` |
+| `mix.exs` | `_build/`, `.elixir_ls/` |
+| `pubspec.yaml` | `.dart_tool/` |
+| `Package.swift` | `.build/`, `.swiftpm/` |
+| `build.zig` | `.zig-cache/`, `zig-cache/`, `zig-out/` |
+| `composer.json` | `vendor/` |
+| `.terraform.lock.hcl` | `.terraform/` |
+
+The table is closed. A directory missing from it with no marker is Unknown
+and costs one question. Add a row only from the tool's own documentation or
+a published list, and cite it in `SOURCES.md`.
 
 **State files.** The files the chain writes to `<git-dir>`, with the test for
 each. "Its branch" is the branch its first line names. The tree is *clear*
@@ -275,7 +325,7 @@ here. Otherwise list what was sent, one line each:
 - any other state file with its heading and the paths it cites, or that it
   cites none;
 - a worktree with its path and each entry its `!!` lines name, with that
-  entry's size.
+  entry's size, the Generated ones marked as such.
 
 Scratch is not listed: Phase 4 deletes it either way. Ask with AskUserQuestion
 what to do, `Keep them all` listed first, then `Delete them all`, then
@@ -310,9 +360,9 @@ and the rest go on, unless a later step depends on it.
    is reported with the count. Diverged, it fails; report both counts and
    leave it.
 4. **Worktrees.** `git worktree remove <path>` for each removable one, with no
-   `--force`; one that holds ignored files is removable only once Phase 2
-   approved it. Git refuses a worktree that turned dirty since Phase 1; report
-   it as kept. Then `git worktree prune`.
+   `--force`; one that holds an Unknown ignored entry is removable only once
+   Phase 2 approved it. Git refuses a worktree that turned dirty since
+   Phase 1; report it as kept. Then `git worktree prune`.
 5. **Branches.** For each `landed` branch that no kept worktree holds:
    `git branch -D <branch>`. Git's `-d` check compares against the branch's
    upstream, or HEAD without one, never `<remote>/<default>`, so it can refuse
@@ -336,7 +386,7 @@ what they print, not from what Phase 4 intended:
 Deleted branches:
 - `feat/retry` (was a1b2c3d) — PR #41 merged
 - `fix/typo` (was 9f8e7d6) — nothing left to merge
-Removed worktrees: `.claude/worktrees/retry`; pruned 1 missing.
+Removed worktrees: `.claude/worktrees/retry`, with generated `.godot/` and `.import/`; pruned 1 missing.
 Removed files: `ez-review.md`, `ez-commit-plan.md` from the git directory; `debug.log`, `scratch/probe.py`.
 
 Kept:

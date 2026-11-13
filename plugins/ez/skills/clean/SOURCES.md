@@ -29,8 +29,10 @@ a plan `picked` both before it is built and after a build that missed a
 criterion, so the heading cannot settle it. A state file that may describe
 those untracked files rides in that question rather than adding a second one;
 see **State files**. A landed worktree that holds ignored files rides in the
-same question: removing it deletes them, and no command tells a cache that
-costs a rebuild from a `.env` that cannot be rebuilt.
+same question, since removing it deletes them, unless every one is a
+directory a tool provably generated; see **Generated directories**. Asking
+about a `.godot/` or a `.venv/` on every cleanup was a stop the user always
+approved.
 
 ## Finding the default branch
 
@@ -120,8 +122,8 @@ Tested behaviour of `git worktree`:
   `src/__pycache__/` was removed whole. Git's check does not cover ignored
   files, so Phase 1 runs
   `status --porcelain=v1 --ignored --untracked-files=normal`, which printed
-  one `!!` line for each of those three, and sends a landed worktree that
-  holds any to the Phase 2 question rather than keeping it on every run.
+  one `!!` line for each of those three, and sorts each entry by
+  **Generated directories** rather than keeping the worktree on every run.
   Without `--untracked-files=normal`, the same status printed nothing under
   `status.showUntrackedFiles=no` and each file inside the two directories
   under `all`.
@@ -155,8 +157,10 @@ that worktree's git directory.
 ## Untracked and ignored files
 
 `git clean -nd` lists untracked files. Only `-X` or `-x` reaches ignored ones.
-Ignored files are out of scope: a dependency directory or build cache is
-expensive to rebuild, and an ignored `.env` cannot be rebuilt at all.
+The checkout's own ignored files are out of scope: a dependency directory or
+build cache is expensive to rebuild, and an ignored `.env` cannot be rebuilt
+at all. A landed worktree's ignored files go with the worktree, under the
+rule in **Generated directories**.
 
 The skill deletes with `git clean -f -- <path>` and not `rm`. Handed a
 modified tracked file beside an untracked one, `git clean` removed the
@@ -167,6 +171,79 @@ nothing.
 `*.log` or `tmp_*` rule would match a file the user keeps on purpose. A session
 that wrote a file knows why. After a compaction or in a new session that
 knowledge is gone, and the skill says to treat everything as unknown.
+
+## Generated directories
+
+git-clean(1) says `-X` removes "only files ignored by Git", which "may be
+useful to rebuild everything from scratch, but keep manually created files"
+(<https://git-scm.com/docs/git-clean>). Git has no finer notion: an ignored
+`.env` and an ignored `node_modules/` look the same to it. So the skill reads
+evidence off the entry itself, and an entry with none is asked about as
+before. A wrong Unknown costs one question; a wrong Generated costs data, so
+every test leans to Unknown.
+
+Only a directory can be Generated. A tool's cache or environment is a
+directory, and every
+ignored file that cannot be rebuilt in the examples above, `.env` and
+`local.env`, is a single file. Requiring a trailing `/` on the `!!` line
+keeps them out whatever the rest of the test says.
+
+A `.git` at any depth makes an entry Unknown. In a scratch worktree, a
+`.venv/` holding `src/pkg/.git/`, the shape `pip install -e git+…` leaves, printed one
+`!! .venv/` line, and `git worktree remove` deleted the nested repository
+with the rest. `find .venv -name .git -print -quit` printed
+`.venv/src/pkg/.git`, and printed nothing on a `node_modules/` without one.
+Checking only the top of the entry would have passed it.
+
+The markers:
+
+- The Cache Directory Tagging specification defines `CACHEDIR.TAG`, whose
+  first 43 bytes are `Signature: 8a477f597d28d172789f06886806bc55`, as marking
+  its directory as regenerable cache. It says to treat the tag as a hint and
+  to check that it is a regular file with the exact header
+  (<https://bford.info/cachedir/>). pytest writes one into `.pytest_cache`
+  (`_pytest/cacheprovider.py`); `.ruff_cache` and `.mypy_cache` directories
+  in public repositories hold one, and Cargo writes one into a `target/` it
+  creates itself. The
+  skill accepts the hint only on a worktree whose work is already proven to
+  have landed.
+- Every Python virtual environment holds a `pyvenv.cfg` with a `home` key
+  (<https://docs.python.org/3/library/venv.html>). The environment is rebuilt
+  from the project's own requirements.
+- A `.gitignore` containing `*` is not accepted. venv writes one on Python
+  3.13 and later, and pytest writes one, but a person who wants a folder kept
+  out of git without editing the repository's `.gitignore` writes the same
+  file. In a scratch worktree, a `notes/` holding that `.gitignore` and a
+  `todo.txt` printed a single `!! notes/` line, indistinguishable from a
+  cache's. The venv case is covered by `pyvenv.cfg` anyway.
+
+The table needs a tracked project file in the same directory as the entry,
+which is how kondo decides a directory is a project's artifact: a marker file
+plus a list of artifact directories per ecosystem
+(<https://github.com/tbillington/kondo/blob/master/kondo-lib/src/lib.rs>). The
+rows are kondo's, kept to ecosystems whose marker is a file the project
+tracks. Kondo's Unity marker, `Assembly-CSharp.csproj`, is one Unity
+generates and projects ignore, so a tracked-file test would never meet it, and
+the row is left out. The name alone is not enough: kondo's own list has
+`build`, `vendor` and `bin` under several ecosystems, and a `build/` with no
+`build.gradle` beside it may hold anything. Godot's documentation calls
+`.godot/` "project cache data" to ignore "to avoid bloating your version
+control repository with generated data"
+(<https://docs.godotengine.org/en/stable/tutorials/best_practices/version_control_systems.html>).
+GitHub's Godot template lists `.import/` with `.godot/`, under Godot-specific
+ignores (<https://github.com/github/gitignore/blob/main/Godot.gitignore>).
+
+In a scratch repository tracking `game/project.godot` and `src/app.py`,
+`git ls-files -- ':(glob)game/project.godot'` printed it, and
+`':(glob)src/*.py'` printed `src/app.py` but not `src/deep/x.py`, where the
+plain pathspec `src/*.py` printed both. Without `:(glob)`, a `*` in a
+pathspec matches across `/`, so a `.py` file anywhere below would vouch for a
+directory it never generated.
+
+This is a change from the first version of the skill, which sent every
+landed worktree holding ignored files to the question. The reason it gave, no
+command tells a cache from a `.env`, still holds for git; the test above is
+the evidence that was missing.
 
 ## State files
 
