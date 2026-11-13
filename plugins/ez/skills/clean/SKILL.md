@@ -5,14 +5,17 @@ description: >-
   merged. Fetches, returns the checkout to the default branch and fast-forwards
   it, then deletes what the finished work left behind and only that: local
   branches whose work is proven to have landed (a squash merge counts), linked
-  worktrees that are clean and whose branch landed, the state files other ez
-  skills keep in the git directory, and scratch files this session made.
+  worktrees that are clean, submodules included, and whose branch landed, the
+  state files other ez skills keep in the git directory, and scratch files
+  this session made.
   Anything it cannot prove is finished stays and is listed with the reason:
   unmerged branches, dirty worktrees, tracked changes, stashes. A landed
   worktree that holds ignored files is removed only on the user's word,
   unless each is a directory a tool provably generated, such as `.venv` or
-  `.godot`. Only reads a remote, never writes to it, never forces, never
-  discards uncommitted work. Works in any git repository and any language. Use
+  `.godot`. Only reads a remote, never writes to it, never discards
+  uncommitted work. Forces nothing but the removal git refuses for a worktree
+  with submodules, and that only right after proving nothing in them would be
+  lost. Works in any git repository and any language. Use
   this when work is done and the checkout should go back to a clean default
   branch, in preference to running `git branch -D`, `git worktree remove`, or
   `git clean` directly — invoked by the user via /ez:clean, or by the model
@@ -50,8 +53,14 @@ this one does not. Name it and stop rather than running.
   push, never delete a remote branch, never merge or close a PR.
 - NEVER discard uncommitted work: no `git restore`, `git checkout -- <path>`,
   `git reset --hard`, `git stash` in any form, and no `--force` on
-  `git switch` or `git worktree remove`. Tracked changes stay exactly where
-  they are.
+  `git switch`. Tracked changes stay exactly where they are.
+- `git worktree remove` takes `--force` once, only for a worktree
+  **Worktrees** found to have submodules, and only immediately after its whole
+  test, **Submodules** included, passes again in Phase 4. Git refuses every
+  worktree with a submodule, clean or not, so the flag is the only way to
+  remove one. It also skips git's own dirty check and deletes the submodules'
+  repositories with the worktree, and the re-run test stands in for both.
+  Never pass it twice: that overrides a lock.
 - NEVER run `git clean` without naming each path, and never with `-x` or `-X`.
   Ignored files hold build caches that cost time to rebuild and `.env` files
   that cannot be rebuilt, and git cannot tell the two apart. The checkout's
@@ -208,8 +217,11 @@ than the one this session is in:
   so a session may be using it. A fresh worktree on a branch with no commits
   passes every other test here.
 - Otherwise it is removable when
-  `git -C <path> status --porcelain=v1 --ignored --untracked-files=normal`
-  prints nothing and its work is elsewhere. Its work is elsewhere when its
+  `git -C <path> status --porcelain=v1 --ignored --untracked-files=normal --ignore-submodules=none`
+  prints nothing and its work is elsewhere. The last flag overrides
+  `diff.ignoreSubmodules` and `submodule.<name>.ignore`, which can hide a
+  submodule's changes, and changes nothing in a worktree without submodules.
+  Its work is elsewhere when its
   branch is `landed`, or its HEAD is detached at a commit
   some branch or the default branch contains
   (`git -C <checkout> branch -a --contains <sha>` prints at least one line).
@@ -226,11 +238,53 @@ than the one this session is in:
   from the entry itself. `--untracked-files=normal` overrides
   `status.showUntrackedFiles`, which at `no` hides every line and at `all`
   lists each file of an ignored directory on its own line.
+- A worktree that passes so far and has submodules is removable only when
+  **Submodules** below holds as well. It has submodules when
+  `<wt-git-dir>/modules` exists, even empty, or
+  `git -C <path> submodule foreach --quiet --recursive pwd` prints a line,
+  where `<wt-git-dir>` is the worktree's own git directory. These are the two
+  conditions git itself refuses on.
 - Anything else is kept: uncommitted or untracked files, a branch that has
-  not landed, a detached commit nothing else holds, a worktree Phase 2 did
-  not approve.
+  not landed, a detached commit nothing else holds, a submodule holding work
+  that exists only there, a worktree Phase 2 did not approve.
 
 A branch checked out in a kept worktree is kept with it.
+
+**Submodules.** `git worktree remove --force` deletes a worktree's submodule
+repositories with it. They live under `<wt-git-dir>/modules/`, apart from the
+main checkout's, or in a `.git` directory inside the worktree. A worktree with
+submodules is removable only when all three of these hold. When one fails it
+is kept, with the submodule's path and what it holds as the reason. Run the
+first two in every submodule `git -C <path> submodule foreach --quiet --recursive`
+visits, nested ones included:
+
+1. `git status --porcelain=v1 --ignored --untracked-files=normal --ignore-submodules=none`
+   prints nothing, or only `!!` lines. Sort each `!!` entry by **Generated
+   directories** with the submodule standing in for the worktree: `ls-files`
+   runs inside it, and Phase 2 names the entry by its path from the
+   worktree's root. The superproject's status cannot stand in for this. It
+   never lists a submodule's ignored files, and under a global
+   `diff.ignoreSubmodules=all` it missed an untracked file in a nested
+   submodule even with `--ignore-submodules=none`.
+2. `git --git-dir=<repo> rev-list --all HEAD --not --remotes` prints nothing
+   for each submodule's repository, `git rev-parse --absolute-git-dir` run in
+   it. It lists every commit a local branch, tag, stash, or detached HEAD
+   holds that none of the submodule's remote-tracking refs does, and the
+   superproject's status shows none of them. A submodule with no remote fails
+   it and is kept.
+3. Run the command from 2 also on every other repository under
+   `<wt-git-dir>/modules/`: the parent of each directory
+   `find "<wt-git-dir>/modules" -type d -name objects` prints, when that
+   parent holds a `HEAD` file. A submodule whose checkout was removed is not
+   visited by `foreach`, but its repository is still there and `--force`
+   deletes it. No repository from 2 or 3 may hold a `worktrees/` directory
+   with an entry in it: removal would orphan the worktrees it lists.
+
+A command here that fails, such as one in a submodule whose `.git` points at
+a missing directory, keeps the worktree. The commits are read against the
+submodule's remote-tracking refs as they stand, with no fetch inside it, so a
+stale ref can keep a worktree but never lose one. A commit only a reflog holds
+does not count, as with the worktree's own reflog.
 
 **Generated directories.** An ignored entry of a landed worktree is Generated
 when all three of these hold, and Unknown otherwise, whatever its name
@@ -303,8 +357,8 @@ stale once the user approves it there.
 - `ez.patch`, `ez-fix.patch` — staging scratch, stale when the tree has no
   tracked changes.
 
-A removed worktree takes its own git directory, and any state files in it,
-with it.
+A removed worktree takes its own git directory, any state files in it, and
+its submodules' repositories with it.
 
 **Untracked files.** From `git status`, ignored files excluded. Sort each:
 
@@ -359,10 +413,15 @@ and the rest go on, unless a later step depends on it.
    `git merge --ff-only <remote>/<default>`. Ahead of the remote is fine and
    is reported with the count. Diverged, it fails; report both counts and
    leave it.
-4. **Worktrees.** `git worktree remove <path>` for each removable one, with no
-   `--force`; one that holds an Unknown ignored entry is removable only once
-   Phase 2 approved it. Git refuses a worktree that turned dirty since
-   Phase 1; report it as kept. Then `git worktree prune`.
+4. **Worktrees.** One that holds an Unknown ignored entry is removable only
+   once Phase 2 approved it. For each removable one without submodules,
+   `git worktree remove <path>`, with no `--force`; git refuses one that
+   turned dirty since Phase 1, so report it as kept. For each removable one
+   with submodules, run its whole **Worktrees** test again, **Submodules**
+   included, immediately before `git worktree remove --force <path>`. Keep
+   it when anything fails, including an Unknown entry Phase 2 did not see.
+   `--force` skips git's dirty check, so this re-run is the only check left.
+   Then `git worktree prune`.
 5. **Branches.** For each `landed` branch that no kept worktree holds:
    `git branch -D <branch>`. Git's `-d` check compares against the branch's
    upstream, or HEAD without one, never `<remote>/<default>`, so it can refuse
@@ -386,13 +445,14 @@ what they print, not from what Phase 4 intended:
 Deleted branches:
 - `feat/retry` (was a1b2c3d) — PR #41 merged
 - `fix/typo` (was 9f8e7d6) — nothing left to merge
-Removed worktrees: `.claude/worktrees/retry`, with generated `.godot/` and `.import/`; pruned 1 missing.
+Removed worktrees: `.claude/worktrees/retry`, with generated `.godot/` and `.import/`; `../net-fix` with its 2 submodules; pruned 1 missing.
 Removed files: `ez-review.md`, `ez-commit-plan.md` from the git directory; `debug.log`, `scratch/probe.py`.
 
 Kept:
 - `feat/cache` — PR #44 open
 - `spike/queue` — 3 commits, no PR
 - worktree `../exp` — 2 uncommitted files
+- worktree `../lib-bump` — submodule `libs/core` holds 2 commits not on its remote
 - worktree `.claude/worktrees/probe` — touched within the hour
 - `notes.txt` — untracked, kept at your word
 - 2 stashes

@@ -100,14 +100,16 @@ to publish; a clean review is not that request.
 returns the checkout to the default branch and fast-forwards it, and deletes
 what the finished work left behind: local branches proven to have landed (a
 squash merge counts), clean worktrees whose branch landed, the chain's state
-files in the git directory, and scratch files the session made. Everything
-else stays and is listed with its reason. It asks one question, and only when
-there is something to ask about: untracked files it did not create, a `picked`
-plan that may have been built and landed, or a landed worktree that holds
-ignored files other than directories a tool provably generated, such as
-`.venv/` or `.godot/`. A state file that may describe those untracked files
-rides in it. The model may invoke it when the user says the PR merged or the
-work is finished.
+files in the git directory, and scratch files the session made. A worktree
+with submodules is removed with `--force`, the only way git allows, once
+each submodule proves clean and holds no commit or stash its remote lacks.
+Everything else stays and is listed with its reason. It asks one question,
+and only when there is something to ask about: untracked files it did not
+create, a `picked` plan that may have been built and landed, or a landed
+worktree that holds ignored files other than directories a tool provably
+generated, such as `.venv/` or `.godot/`. A state file that may describe
+those untracked files rides in it. The model may invoke it when the user says
+the PR merged or the work is finished.
 `skills/clean/SOURCES.md` records the evidence behind its rules.
 
 `/ez:review` also runs usefully after step 6, against the open PR, or against

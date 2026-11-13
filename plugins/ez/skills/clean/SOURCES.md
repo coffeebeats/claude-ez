@@ -115,8 +115,9 @@ The skill never resets to make it pass.
 Tested behaviour of `git worktree`:
 
 - `remove` on a worktree with an untracked file fails with "contains modified
-  or untracked files, use --force to delete it". The skill never passes
-  `--force`, so git's own check backs the Phase 1 status check for those.
+  or untracked files, use --force to delete it". For a worktree without
+  submodules the skill never passes `--force`, so git's own check backs the
+  Phase 1 status check for those.
 - `remove` on a worktree holding only an ignored `local.env` succeeded and the
   file was gone, and one holding an ignored `.env`, `node_modules/`, and
   `src/__pycache__/` was removed whole. Git's check does not cover ignored
@@ -149,6 +150,68 @@ worktree "with changes stays on disk", and that non-interactive runs do not
 clean theirs up. Those are the worktrees the skill expects to find. It applies
 the general test and has no rule keyed to the path or the branch prefix, so a
 worktree the user made by hand gets the same protection.
+
+### Worktrees with submodules
+
+The first version never forced, so it never removed a worktree with an
+initialized submodule, and in a repository with submodules every landed
+worktree stayed. Tested in a scratch superproject holding a submodule that
+holds another, with each linked worktree made by `worktree add` and
+`submodule update --init --recursive`:
+
+- `remove` on a clean worktree failed with "working trees containing
+  submodules cannot be moved or removed". Git checks for submodules before it
+  checks for dirt, and its source says "Until we sort this out, all
+  submodules are 'dirty'" (`builtin/worktree.c`, `check_clean_worktree` and
+  `validate_no_submodules`, at
+  <https://github.com/git/git/blob/v2.45.2/builtin/worktree.c>). A worktree
+  counts as having submodules when its git directory holds a `modules/`
+  directory or its index has a populated gitlink. An empty `modules/` alone
+  made `remove` fail; after `rmdir` it succeeded. git-worktree(1) says
+  "Unclean worktrees or ones with submodules can be removed with `--force`"
+  (<https://git-scm.com/docs/git-worktree>). No unforced path exists.
+- `remove -f` removed it, and `<common dir>/worktrees/<id>/`, which holds the
+  submodules' repositories under `modules/` (the submodule's `.git` file read
+  `gitdir: ../../sup/.git/worktrees/w1/modules/lib`), was gone with it.
+- `remove -f` also removed a worktree with a modified tracked file: one `-f`
+  skips git's dirty check along with the submodule check. That is why the
+  skill runs the whole test again immediately before forcing.
+- `remove -f` on a locked worktree with submodules failed and asked for
+  `-f -f`. A lock taken after Phase 1 still holds.
+- A local branch, a stash, and a commit in the nested submodule, with its
+  HEAD back at the recorded commit, left the superproject's
+  `status --porcelain=v1 --ignored --untracked-files=normal --ignore-submodules=none`
+  empty. `git rev-list --all HEAD --not --remotes` in that submodule listed
+  the branch's commit and the stash's two commits. A commit at a detached
+  HEAD that no ref holds was listed too, because of `HEAD`.
+- With `diff.ignoreSubmodules=all` set for every repository, as `-c` or a
+  global config sets it, an untracked file in the nested submodule left the
+  superproject's status empty with and without `--ignore-submodules=none`:
+  the flag does not reach past the first level. The same status with the
+  flag, run inside the nested submodule, printed `?? u`. So the skill runs
+  status in every submodule `foreach --recursive` visits. With the setting
+  only in the superproject's own config, the superproject's flagged status
+  did print ` M lib`.
+- A submodule cloned in place, with a `.git` directory inside the worktree,
+  kept its repository there, and `rev-parse --absolute-git-dir` named it. A
+  walk of `modules/` found only the stale repositories beside it, while
+  `rev-list` in the real one listed its unique commit. That is why the proof
+  runs in each visited submodule's own repository.
+- A nested submodule whose checkout was emptied is not visited by
+  `foreach --recursive`, but its repository under `modules/lib/modules/inner`
+  remained with a unique commit, which `rev-list` there listed, and `-f`
+  would delete it. `find <modules> -type d -name objects` found it, whose
+  parent holds `HEAD`. So the proof also walks `modules/`.
+- In a worktree whose submodules were never initialized, `modules/` did not
+  exist, `foreach` printed nothing, and plain `remove` succeeded as before.
+
+`submodule deinit` is no way around the flag. It deletes the
+`submodule.<name>` section of the repository's config, which every worktree
+shares (`builtin/submodule--helper.c` and `path.c` `common_list` at
+<https://github.com/git/git/tree/v2.45.2>). Run with `-f --all` in a linked
+worktree, it took the main checkout's two `submodule.*` config lines to zero,
+and `git submodule status` there marked `lib` uninitialized. Plain `remove`
+on that worktree still refused afterwards.
 
 The skill does not remove the worktree it runs in. The session's working
 directory would vanish under it, and the state files the run reads live in
