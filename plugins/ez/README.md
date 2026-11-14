@@ -29,8 +29,10 @@ agents/plan-evaluator.md  evaluator /ez:plan runs once a round, read-only apart 
 
 The chain never advances on its own. The model may start `/ez:plan` when it
 sets out to plan work, and the run stops for the user's pick. The one
-exception is an unattended `/ez:plan --auto` run, which builds unasked only
-when exactly one direction passed and it commits to nothing one-way. Every
+exception is an unattended `/ez:plan` run, which is one started with `--auto`
+or, in Claude Code, one nobody can answer, such as a headless run or a
+subagent. It builds unasked only when exactly one direction passed and it
+commits to nothing one-way. Every
 later step runs when the user asks for it, or through `/ez:publish`, which
 runs steps 4 to 6 in a row when the user invokes it or asks the model to
 publish the branch.
@@ -48,7 +50,7 @@ publish the branch.
    to `<git-dir>/ez-plan-<key>.md` and
    builds it in the same session. The model may invoke it as well as the user. Every
    run pays for several agents, but nothing is built until the user picks,
-   except in the unattended `--auto` run described above.
+   except in the unattended run described above.
    `skills/plan/SOURCES.md` records the evidence behind its shape.
 2. `/ez:review [level] [notes]` — critically reviews the change for
    correctness, reliability, performance, simplicity, and fit with the
@@ -96,6 +98,16 @@ included, and `/ez:no-ai-slop` over the docs prose the branch wrote, then
 to `/ez:pr`. The model may invoke it as well as the user, but only when asked
 to publish; a clean review is not that request.
 
+Stacked branches are supported, through GitHub's `gh stack` extension and no
+other tool. `/ez:commit` proposes a stack split, waits for approval of the
+split and the branch names, and chains the branches with `gh stack init` and
+`gh stack add`. `/ez:pr` opens PRs in the same pass for the branches below
+that have none and links them into the stack on GitHub. `/ez:review`,
+`/ez:fix`, and `/ez:publish` take the branch below as the base, and the first
+two find it only once it has an open PR. Restacking (`gh stack rebase`,
+`sync`, `push`, `submit`) stays the user's, because the chain never rewrites
+history or force-pushes.
+
 `/ez:clean` runs after the merge, which stays the user's to do. It fetches,
 returns the checkout to the default branch and fast-forwards it, and deletes
 what the finished work left behind: local branches proven to have landed (a
@@ -132,6 +144,45 @@ own prose skill knows the house conventions; each skill checks for one and
 defers. Plugin skills are namespaced, so a repo's `no-ai-slop` and this one
 coexist without shadowing.
 
+## Picking a path
+
+A change runs only the steps it needs. The skills' own descriptions draw the
+lines:
+
+- **Already decided.** The request says what to edit, the bug's cause is
+  known, or the change is a rename. Make the edit, then `/ez:commit` and
+  `/ez:pr`. `/ez:commit` says in one line that the tree was not reviewed and
+  goes on.
+- **Needs a critical read.** The mechanism is settled, but the change should
+  be read before it ships. Build it, then `/ez:review` (`xhigh` unless a
+  level is given), `/ez:fix`, `/ez:review` once more, and `/ez:publish`. When
+  nobody else will read the change before it merges, run `/ez:review max`
+  once before the merge. For a solo maintainer that run stands in for the
+  second reviewer.
+- **Direction still open.** The work is an issue, names no mechanism, could
+  be built more than one way, adds a component, or changes a public
+  interface, a stored format, or a dependency. Start with `/ez:plan`, whose
+  agents are worth paying for here and not on the first path, then go on
+  from the review as above.
+
+## Runs with nobody to answer
+
+The chain assumes someone answers its questions. In CI, an `@claude` GitHub
+Action, or a scheduled agent, nobody does. `/ez:commit` stops on a judgment
+call and never pushes, and `/ez:fix` stops for approval before it writes
+anything. Only `/ez:plan` has an unattended mode. In Claude Code a run
+nobody can answer is unattended even without `--auto`, and it builds only
+under the test described in **The chain**.
+
+A repo that tells agents to commit only through `/ez:commit` gives a CI agent
+a rule it cannot follow where the plugin is not installed. Fixing that is the
+consuming repo's job, not the plugin's. One repo exempts its CI agent through
+claude-code-action, with `claude_args: --append-system-prompt "..."` telling
+it to ignore the commit rule and to commit and push itself. The action cannot
+install this marketplace from its SSH URL. As of claude-code-action 9fa6885
+(2026-11-13), `plugin_marketplaces` accepts only an `https://` URL ending in
+`.git` or a local path.
+
 ## Per-repository configuration
 
 `.claude/ez.json` at a repo root tunes the chain. Every key is optional, and the
@@ -158,7 +209,11 @@ before staging anything.
 
 Requires `gh` authenticated for `/ez:pr`, for `/ez:plan` to read an issue, and
 for `/ez:review` to find a branch's PR; without it the review falls back to the
-default branch as base.
+default branch as base. The `github/gh-stack` extension is optional. Without
+it `/ez:commit` chains a stack's branches with `git switch -c` and says the
+stack is untracked, and `/ez:pr` opens one PR at a time. It targets the head
+of the nearest open PR that is an ancestor of the branch, confirmed first, or
+the default branch when none is, and chains the PRs by base without a stack.
 
 ```sh
 claude plugin marketplace add git@github.com:coffeebeats/claude-ez.git
