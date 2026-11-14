@@ -1,4 +1,4 @@
-# ez — a portable commit chain for Claude Code
+# ez — a portable commit chain for Claude Code and Codex
 
 Nine skills that carry a change from a chosen direction to open pull request
 and tidy the checkout once it merges, in any git repository and any language. Nothing here is language-specific;
@@ -167,6 +167,32 @@ claude plugin install ez@claude-ez
 
 Verify with `claude plugin details ez`, which should list nine skills, seven
 agents, and no hooks.
+
+## Running under Codex
+
+Codex installs the plugin from the same marketplace (the root README has the
+commands) and loads all nine skills; read `/ez:x` as `$ez:x`. Four things
+differ, each from what Codex can and cannot do as of codex-cli 0.156:
+
+- **Agents run on the session model.** A Codex plugin cannot ship agent
+  types, so `/ez:plan`, `/ez:fix`, and `/ez:review max` spawn a fresh agent
+  with no forked context and open its task with the role's file from
+  `agents/`. The file's `effort` carries over; its `model` does not, so the
+  per-role cost pins hold only in Claude Code. Nor are the `tools:` lists
+  enforced: the agents stay read-only because their instructions say so.
+- **Agent slots are few.** `/ez:review max` spawns more agents than Codex
+  runs at once, so a refused spawn waits for a running agent to finish and
+  retries, and where Codex offers a close tool the skills close each agent
+  when done.
+- **The sandbox asks first.** Codex keeps `.git` read-only and the network
+  off by default, so state-file writes in the git directory, commits,
+  worktrees, `git fetch` and `push`, and `gh` each ask for approval.
+- **Questions are plain text.** Codex has no question tool outside Plan mode,
+  so a stop is a question in the reply and the turn ends. `/ez:plan` builds
+  unasked only under `--auto`.
+
+The `/ez:review` levels were measured on Claude models. A Codex model runs
+the same table, unmeasured.
 
 ## Turning it off in one repository
 

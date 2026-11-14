@@ -85,8 +85,8 @@ The proposer answers each for every candidate; the tester checks the answers.
   is swallowed and none is opened. Name the callers read.
 - **Fits.** A neighbor in this codebase that does the same thing the same way,
   cited `path:line`; or, when none exists, the language's own idiom with a
-  nameable source. A repo rule (`CLAUDE.md`, `.claude/rules/`, `.claude/ez.json`)
-  is quoted when it applies.
+  nameable source. A repo rule (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/`,
+  `.claude/ez.json`) is quoted when it applies.
 - **Names its standard only when there is one.** A spec, an RFC, a documented
   library contract, a language reference. "Best practice" with no citation is
   not a reason and does not appear in the plan.
@@ -141,11 +141,12 @@ content rather than trusting the number.
 
 ## Agents
 
-Two agent types, both read-only, both fresh-context, dispatched through the
-Agent tool. The proposer runs on Sonnet at `medium` and the tester on Opus at
-`high`, each pinned in its own file rather than inherited, because the work is
-bounded per finding and the cost of a run should not depend on what the
-session is running. You escalate only the findings that prove hard (Phase 2).
+Two agent types, both read-only, both fresh-context. The proposer runs on
+Sonnet at `medium` and the tester on Opus at `high`, each pinned in its own
+file rather than inherited, wherever the harness can pin them, because the
+work is bounded per finding and the cost of a run should not depend on what
+the session is running. You escalate only the findings that prove hard
+(Phase 2).
 
 - `ez:fix-proposer` — rules on the finding first, from the code, and only then
   proposes candidates against the bar. One per finding.
@@ -162,11 +163,21 @@ pasted text. Every token written into a dispatch is billed at the session
 model's output rate, and an agent that reads for itself reads the current
 tree, not this context's copy of it.
 
-If the Agent tool is unavailable, say so and stop; running the two roles in
-this context reproduces the failure this skill exists to avoid. If the tool is
-there but does not offer these types, dispatch `general-purpose` with the
-contents of `${CLAUDE_PLUGIN_ROOT}/agents/fix-proposer.md` or `fix-tester.md`
-as the opening of its prompt, with the model and effort those files name.
+In Claude Code, dispatch each through the Agent tool by its type. Where
+these types are not offered, as in Codex, spawn a fresh agent that inherits
+none of this conversation (`general-purpose` in Claude Code; in Codex,
+`fork_context` false or `fork_turns` `"none"`) and open its task with the
+body, below the frontmatter, of `fix-proposer.md` or `fix-tester.md` in
+`../../agents/` relative to this skill's directory, copied verbatim, never
+summarized: the return format the agent must follow is in it. Give it the
+effort that file names, `xhigh` for `max`, and the model it names only where
+the harness offers that model; otherwise the agent inherits the session's.
+Agent slots are few: where a close tool is offered, close each agent once
+you no longer need it, and when a spawn is refused for the limit, wait for a
+running agent to finish and retry.
+
+If no agent can be spawned, say so and stop; running the two roles in this
+context reproduces the failure this skill exists to avoid.
 
 ## Workflow
 
@@ -194,7 +205,8 @@ patched files outside it and still reports success. Then:
    the way `/ez:review` resolves it (the open PR's base, else the nearest
    stacked parent, else the default branch), as `git merge-base <base> HEAD`;
    whether the working tree has uncommitted changes; and the paths of the repo
-   rules that exist (`CLAUDE.md`, `.claude/rules/`, `.claude/ez.json`). Do not
+   rules that exist (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/`,
+   `.claude/ez.json`). Do not
    read the diff, the source, or the rules into this context. The agents read
    them, and nothing here needs them before Phase 4.
 
@@ -228,7 +240,8 @@ decided it, what test ran and what it printed, and one pick with the reason
 the others lost, or NONE when nothing holds.
 
 When the tester returns NONE, re-dispatch the proposer for that finding once,
-on Opus at `high` (the Agent tool's `model` and `effort` override the file's),
+on Opus at `high` (the dispatch's model and effort override the file's; where
+the harness cannot pin Opus, effort `high` alone),
 with the tester's objections, and run the tester again on what
 comes back. One round; after it, the plan shows what stands and what did not,
 and the user decides. A pick that differs from the proposer's preference is

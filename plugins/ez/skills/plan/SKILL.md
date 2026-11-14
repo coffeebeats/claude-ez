@@ -2,24 +2,19 @@
 name: plan
 description: >-
   Plans a change before any of it is built — a GitHub issue by number or URL,
-  or a problem described in free form — by having read-only scouts map what
-  already exists in the codebase and, when the problem needs it, in published
-  references; a fresh-context agent propose one to three solution directions
-  that differ in mechanism; and a second fresh agent judge each one as a
-  senior engineer would, for gaps, consequences, and existing or simpler
-  techniques it missed. Prints the directions that pass, ranked, with the
-  evaluator's conditions, and stops for the user to pick one; on the pick it
-  writes the plan to the checkout's git directory and builds it in the same
-  session. Works in any git repository and any language. A run takes several
-  agents and several minutes. Use this in place of EnterPlanMode when the
-  request is an issue, or a change that names no mechanism, could be built
-  more than one way, adds a component, or changes a public interface, a
-  stored format, or a dependency. With `--auto`, or where no user can answer,
-  it builds unasked only when exactly one direction passes and commits to
-  nothing one-way, and otherwise returns the options. Not for a request that
-  already says what to edit, a bug whose cause is known, a rename, or a
-  question — invoked by the user via /ez:plan, or by the model, outside plan
-  mode, before it builds its first idea.
+  or a problem described in free form. Read-only scouts map what already
+  exists, in the codebase and when needed on the web; a fresh-context agent
+  proposes one to three directions that differ in mechanism; a second fresh
+  agent judges each as a senior engineer would, for gaps, consequences, and
+  simpler techniques it missed. Prints the directions that pass, ranked, and
+  stops for the user to pick, then writes the plan and builds the pick in
+  this session. Takes several agents and minutes. Use this in place of
+  EnterPlanMode when the request is an issue, or a change that names no
+  mechanism, could be built more than one way, adds a component, or changes a
+  public interface, a stored format, or a dependency. Not for a request that
+  already says what to edit, a known-cause bug, a rename, or a question —
+  invoked by the user via /ez:plan, or by the model, outside plan mode, before
+  it builds its first idea.
 argument-hint: "[--auto] <#issue | issue URL | problem> [notes: constraints, preferences, what is out of scope]"
 allowed-tools: Bash(git rev-parse *), Bash(git status *), Bash(git branch *), Bash(gh issue view *), Read, Glob, Agent, SendMessage
 ---
@@ -118,7 +113,8 @@ preferences. An approach you formed before invoking it is not a preference:
 leave it out of the argument, the frame, and every dispatch. Keeping the first
 idea from steering the plan is what the skill is for.
 
-When the session is in Claude Code's plan mode, stop before Phase 0. Say that
+When the session is in a plan mode (Claude Code's or Codex's), stop before
+Phase 0. Say that
 this skill writes its plan file and builds the pick in this session, both of
 which plan mode forbids, and that the user can leave plan mode and run
 `/ez:plan` again.
@@ -139,10 +135,13 @@ found:
 
 ## Unattended runs
 
-A run is unattended when the first word of its argument is `--auto`, or when
-nobody can answer: AskUserQuestion is not among your tools, as in a subagent
-or a headless run. When you invoke the skill yourself with a user present,
-pass `--auto` only if the user asked for the work to go on without them.
+A run is unattended when the first word of its argument is `--auto`. In
+Claude Code it is also unattended when nobody can answer: AskUserQuestion is
+not among your tools, as in a subagent or a headless run. In any other
+harness only `--auto` makes it unattended; an attended run nobody answers
+ends at the Phase 5 options, which is what an unattended run returns when it
+does not build. When you invoke the skill yourself with a user present, pass
+`--auto` only if the user asked for the work to go on without them.
 
 An unattended run asks nothing. Each stop becomes:
 
@@ -170,12 +169,12 @@ by picking.
 
 ## Agents
 
-Three agent types, all fresh-context, dispatched through the Agent tool. The
-scouts are read-only. The proposer and the evaluator are read-only apart
-from scratch probes: one existing test, or a one-line check with no side
-effects, when it settles a question. Each is pinned to a model and effort in
-its own file, so the cost of a run does not depend on what the session is
-running.
+Three agent types, all fresh-context. The scouts are read-only. The proposer
+and the evaluator are read-only apart from scratch probes: one existing
+test, or a one-line check with no side effects, when it settles a question.
+Each is pinned to a model and effort in its own file, so the cost of a run
+does not depend on what the session is running, wherever the harness can
+pin them.
 
 - `ez:plan-scout` (Sonnet, `medium`) — one per focus; maps what exists and
   never proposes.
@@ -194,13 +193,22 @@ carries pasted source, rules, the issue's number or URL, or, for the
 evaluator, the brief. Every token written into a dispatch is billed at the
 session model's output rate.
 
-If the Agent tool is unavailable, say so and stop. Playing the roles in this
+In Claude Code, dispatch each through the Agent tool by its type. Where
+these types are not offered, as in Codex, spawn a fresh agent that inherits
+none of this conversation (`general-purpose` in Claude Code; in Codex,
+`fork_context` false or `fork_turns` `"none"`) and open its task with the
+body, below the frontmatter, of `plan-scout.md`, `plan-proposer.md`, or
+`plan-evaluator.md` in `../../agents/` relative to this skill's directory,
+copied verbatim, never summarized: the return format the agent must follow
+is in it. Give it the effort that file names, `xhigh` for `max`, and the
+model it names only where the harness offers that model; otherwise the
+agent inherits the session's. Agent slots are few: where a close tool is
+offered, close each agent once you no longer need it, and when a spawn is
+refused for the limit, wait for a running agent to finish and retry.
+
+If no agent can be spawned, say so and stop. Playing the roles in this
 context reproduces the first-idea failure the skill exists to prevent and
-fills the context the implementation will run in. If the tool is there but
-does not offer these types, dispatch `general-purpose` with the contents of
-`${CLAUDE_PLUGIN_ROOT}/agents/plan-scout.md`, `plan-proposer.md`, or
-`plan-evaluator.md` as the opening of its prompt, with the model and effort
-that file names.
+fills the context the implementation will run in.
 
 ## Workflow
 
@@ -224,8 +232,9 @@ stop. Then:
 5. If `<plan-file>` exists and its heading ends `framed` or `built`,
    this run replaces it: say so in one line, naming the problem its heading
    carries. If it ends `picked`, the plan may not be built yet: name its
-   problem and ask with AskUserQuestion whether to replace it or stop,
-   replace listed first. On stop, end the run.
+   problem and ask the user whether to replace it or stop, replace listed
+   first (AskUserQuestion in Claude Code; elsewhere ask in plain text and end
+   the turn). On stop, end the run.
 
 Say in one line what is being planned and what the notes held.
 
@@ -270,8 +279,9 @@ precedent that settles a choice — revise the frame and say what changed.
 
 When an unknown would change which direction is right, not merely how it is
 built, and neither the issue, the notes, this conversation, nor the maps
-settle it, ask with AskUserQuestion: at most three questions, each with the
-answer you would choose listed first. Otherwise state the assumption in the
+settle it, ask the user: at most three questions, each with the answer you
+would choose listed first (AskUserQuestion in Claude Code; elsewhere ask in
+plain text and end the turn). Otherwise state the assumption in the
 frame and go on. Never ask what the code answers.
 
 When the maps show the problem already solved by something that exists, or
@@ -325,16 +335,16 @@ CONDITIONS, or FAILS), a ranking of those that pass, and any direction it
 found that none of them took.
 
 The evaluator stops at a turn limit. When its return comes back partial,
-with no `RANK` line, continue that same agent once with `SendMessage`,
-asking for its verdicts from what it has read so far. Do not dispatch a
-second evaluator.
+with no `RANK` line, continue that same agent once (`SendMessage` in Claude
+Code, `send_input` or `followup_task` in Codex), asking for its verdicts from
+what it has read so far. Do not dispatch a second evaluator.
 
 When at least one direction passes, go to Phase 5. When its `PREMISE` line
 says the problem is already met, go to Phase 5 as well, whatever passed: the
 user decides whether anything gets built, and a second round would spend two
 more agents on the question. Otherwise, when none passes, run the second
-round, once: dispatch the proposer again with the Agent tool's
-`effort` set to `high`, carrying the evaluator's `OBJECTIONS` and `MISSED`
+round, once: dispatch the proposer again with its effort set to `high`,
+carrying the evaluator's `OBJECTIONS` and `MISSED`
 lines verbatim as **Objections** and **Missed**, then a fresh evaluator on
 what comes back, dispatched as above. Whatever stands after it goes to Phase
 5.
@@ -402,8 +412,8 @@ may take a direction knowing the objection, or say what to change.
 
 ### Phase 6 — On the pick, write the plan and build it
 Nothing here runs before a pick. When the user replies to the options, or an
-unattended run's build test holds, Read
-`${CLAUDE_PLUGIN_ROOT}/skills/plan/build.md` and follow it: it says what each
+unattended run's build test holds, Read `build.md` in this skill's
+directory and follow it: it says what each
 reply means, how to write the plan section into `<plan-file>`, and how to
 build from it and close. Read it again, with the plan file, if this context
 is compacted or cleared during the build.

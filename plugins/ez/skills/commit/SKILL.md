@@ -84,7 +84,8 @@ Detect anything the file leaves out, and never invent vocabulary:
   none is clear, use `<type>/<short-desc>`.
 - **The gate** — the repo's format, lint, type-check, build, and test commands,
   from `package.json` scripts, `Makefile`, `Justfile`, the CI workflow,
-  CONTRIBUTING, `CLAUDE.md`, or the language's conventional tooling. Split what
+  CONTRIBUTING, `CLAUDE.md`, `AGENTS.md`, or the language's conventional
+  tooling. Split what
   you find into a fast half (format, lint, types, build) and a full half (the
   test suite). When detection is ambiguous, say what you settled on before
   running it, and offer to record it in `.claude/ez.json`.
@@ -167,7 +168,7 @@ Propose an ordered commit sequence that builds understanding:
 scaffolding/types → core logic → wiring. Each commit = one atomic, logical
 change (split by purpose, not size). List as `n. <type>(<scope>): <desc>` with a
 one-line note on contents. Before writing the plan, read **Check for a break**
-in `${CLAUDE_PLUGIN_ROOT}/skills/pr/SKILL.md`; a slice that meets it carries
+in `../pr/SKILL.md`, relative to this skill's directory; a slice that meets it carries
 `!` (`feat(config)!: …`).
 
 **Tests ride with the implementation they cover** — never a trailing test-only

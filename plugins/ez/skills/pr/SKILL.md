@@ -239,7 +239,7 @@ merging genuinely closes it.
 
 A PR body is the most-read prose a repo produces, and it is written under time
 pressure at the end of a branch, which is where slop collects. Draft it, then
-call the Skill tool with `ez:no-ai-slop` and run it in edit mode over the title
+run `ez:no-ai-slop` (the Skill tool in Claude Code) in edit mode over the title
 and the body, per "Invoked from another skill" in that skill. It owns the
 wording; the budget and the section rules above are still yours. Count the lines
 before printing what comes back. Prefer the repo's own prose skill if it has

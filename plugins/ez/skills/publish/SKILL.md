@@ -28,7 +28,7 @@ in its place and carry on with the next step.
 
 ## Hard rules — never violate
 
-- Each step runs as its own skill, through the Skill tool, with its own hard
+- Each step runs as its own skill (the Skill tool in Claude Code), with its own hard
   rules intact. NEVER merge, never force-push, and never commit or push except
   through `/ez:commit` and `/ez:pr`.
 - Keep every stop a step makes. `/ez:commit` waits for approval of a stack split
@@ -115,7 +115,7 @@ Print the base and the two lists in a few lines before editing.
 
 ### 3. Comments
 
-Call the Skill tool with `ez:comments` and pass it the source list. It audits
+Run `ez:comments` and pass it the source list. It audits
 every comment in each file, old ones included, so a file the branch touches
 comes out wholly in the house style. It runs its own `ez:no-ai-slop` detect
 pass over the comment prose, prints its audit, and edits. Its closing pointer
@@ -124,8 +124,7 @@ and say so.
 
 ### 4. Prose
 
-Call the Skill tool with `ez:no-ai-slop` and run it in edit mode over the prose
-list, per "Invoked from another skill" in that skill. Edit what the branch wrote
+Run `ez:no-ai-slop` in edit mode over the prose list, per "Invoked from another skill" in that skill. Edit what the branch wrote
 and leave the rest: a new file whole, and in a changed file only the passages
 `git diff <fork-point> -- <file>` shows as added or changed.
 Apply the edits with Edit. With no prose files, skip this step and say so.
@@ -133,15 +132,14 @@ Apply the edits with Edit. With no prose files, skip this step and say so.
 ### 5. Commit
 
 When `git status --porcelain=v1` is clean, nothing was edited and no fix was
-waiting, so skip to step 6 and say so. Otherwise call the Skill tool with
-`ez:commit`. The tree holds the polish from steps 3 and 4 and anything
+waiting, so skip to step 6 and say so. Otherwise run `ez:commit`. The tree holds the polish from steps 3 and 4 and anything
 `/ez:fix` or the user left uncommitted, and `/ez:commit` slices all of it. When
 it finishes, the tree must be clean; if the user held anything back, stop here,
 since `/ez:pr` refuses a dirty tree.
 
 ### 6. Pull request
 
-Call the Skill tool with `ez:pr` and pass this skill's arguments through. It
+Run `ez:pr` and pass this skill's arguments through. It
 opens the PR, or updates the open one's title and body to match the new
 commits, and reports the URL.
 

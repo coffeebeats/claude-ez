@@ -373,7 +373,12 @@ plan for another in the same checkout. `/ez:clean` matches `ez-plan*.md`.
 
 An unattended run exists because a stop nobody can answer is a dead end. The
 Claude Code subagent docs say AskUserQuestion is not available to subagents
-(paraphrased, not quoted), and a headless run has no one to reply. The skill's
+(paraphrased, not quoted), and a headless run has no one to reply. Outside
+Claude Code the tool's absence says nothing: codex-cli 0.156 offers no
+question tool outside its Plan mode, so every interactive run there would
+read as unattended. There only `--auto` makes a run unattended, and an
+attended run nobody answers ends at the options, which is the unattended
+return when the test fails. The skill's
 value is the pick, so an unattended run keeps the pick wherever there is one
 to make: two passing directions, a one-way decision, a premise that does not
 hold, a direction the evaluator found that nobody proposed, a second round, or

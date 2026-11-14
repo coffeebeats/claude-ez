@@ -3,7 +3,8 @@ name: no-ai-slop
 description: >-
   Edit prose into sharper, more human writing, or detect AI-slop patterns
   without rewriting. Owns prose judgment across a repository — PR titles and
-  bodies, docs, `.claude/**.md`, CLAUDE.md, issue and release text, and the
+  bodies, docs, `.claude/**.md`, CLAUDE.md, AGENTS.md, issue and release
+  text, and the
   prose inside code comments. Use when drafting or revising any of those, when
   asked whether writing reads as AI, and as the prose half of `/ez:comments`
   and `/ez:pr`.

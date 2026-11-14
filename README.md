@@ -1,6 +1,7 @@
 # claude-ez
 
-A private Claude Code marketplace carrying one plugin, `ez` — nine skills that
+A private Claude Code marketplace, which Codex also installs from, carrying
+one plugin, `ez` — nine skills that
 take a change from a planned direction through critical review to open pull
 request, and tidy the checkout once it merges, in any git repository and any
 language. `plugins/ez/README.md`
@@ -36,6 +37,24 @@ to `main` reaches the device only through `claude plugin update ez`.
 Set `CLAUDE_CODE_PLUGIN_KEEP_MARKETPLACE_ON_FAILURE=1` so a failed background
 pull keeps the existing clone instead of deleting and re-cloning it.
 
+## Install in Codex
+
+Codex reads the same `.claude-plugin/` marketplace and plugin manifests, so
+there is nothing Codex-specific in the repository:
+
+```sh
+codex plugin marketplace add git@github.com:coffeebeats/claude-ez.git
+codex plugin add ez@claude-ez
+```
+
+Start a new session; the skills appear as `ez:review` and so on, invoked as
+`$ez:review`. A push to `main` reaches the device through
+`codex plugin marketplace upgrade claude-ez`. What runs differently under
+Codex is in `plugins/ez/README.md`.
+
+Nothing from this plugin may live in `~/.codex/skills/`, under any name. A
+copy there is offered beside the plugin's `ez:*` skills and drifts from them.
+
 ## Working on the plugin
 
 The machine where the plugin is edited installs from the remote like any other.
@@ -70,6 +89,21 @@ cache, not the sessions already running: each keeps the copy it loaded until
 Nothing may live in `~/.claude/skills/ez/`. A directory there loads as a second
 copy of the same plugin under `ez@skills-dir`, and both sets of skills are then
 offered at once.
+
+To try an edit in Codex, use a scratch Codex home, so the device's own
+`claude-ez` marketplace stays on `main`. Codex copies a local marketplace's
+plugin into its cache rather than loading it in place, and `codex plugin add`
+refreshes that copy:
+
+```sh
+export CODEX_HOME="$(mktemp -d)"   # then `codex login` once in it
+codex plugin marketplace add "$PWD"
+codex plugin add ez@claude-ez      # rerun after each edit, then start a new session
+codex debug prompt-input hi        # lists the skills a session would see
+```
+
+Codex cuts a skill description off at 1024 characters, so keep each one under
+that; the last clause, which says when to use the skill, is the one it drops.
 
 ## Licence
 

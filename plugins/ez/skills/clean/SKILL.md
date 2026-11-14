@@ -4,19 +4,13 @@ description: >-
   Cleans up a checkout once work is finished, usually after its pull request
   merged. Fetches, returns the checkout to the default branch and fast-forwards
   it, then deletes what the finished work left behind and only that: local
-  branches whose work is proven to have landed (a squash merge counts), linked
-  worktrees that are clean, submodules included, and whose branch landed, the
-  state files other ez skills keep in the git directory, and scratch files
-  this session made.
-  Anything it cannot prove is finished stays and is listed with the reason:
-  unmerged branches, dirty worktrees, tracked changes, stashes. A landed
-  worktree that holds ignored files is removed only on the user's word,
-  unless each is a directory a tool provably generated, such as `.venv` or
-  `.godot`. Only reads a remote, never writes to it, never discards
-  uncommitted work. Forces nothing but the removal git refuses for a worktree
-  with submodules, and that only right after proving nothing in them would be
-  lost. Works in any git repository and any language. Use
-  this when work is done and the checkout should go back to a clean default
+  branches proven to have landed (a squash merge counts), clean linked
+  worktrees whose branch landed, the state files other ez skills keep in the
+  git directory, and scratch files this session made. Anything it cannot
+  prove finished stays and is listed with the reason. Only reads a remote,
+  never discards uncommitted work, and forces only the worktree removal git
+  refuses for submodules, after proving nothing in them would be lost. Works
+  in any git repository and any language. Use this when work is done and the checkout should go back to a clean default
   branch, in preference to running `git branch -D`, `git worktree remove`, or
   `git clean` directly — invoked by the user via /ez:clean, or by the model
   when the user says the PR merged or the work is finished, or asks to clean
@@ -381,8 +375,9 @@ here. Otherwise list what was sent, one line each:
 - a worktree with its path and each entry its `!!` lines name, with that
   entry's size, the Generated ones marked as such.
 
-Scratch is not listed: Phase 4 deletes it either way. Ask with AskUserQuestion
-what to do, `Keep them all` listed first, then `Delete them all`, then
+Scratch is not listed: Phase 4 deletes it either way. Ask the user what to do
+(AskUserQuestion in Claude Code; elsewhere ask in plain text and end the
+turn), `Keep them all` listed first, then `Delete them all`, then
 `Let me pick`. On the last, take the paths the user names. With a single item
 on the list, ask about that item by name instead: `Keep it` first, then
 `Delete it`. Ask once; a file the user does not name is kept.

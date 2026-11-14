@@ -91,8 +91,8 @@ which files.
    It is a floor, not a substitute for the audit — the X rules are yours to
    apply, wording is step 3's, and no linter will ever tell you a comment is not
    worth its lines.
-3. **Run the prose pass. This step is not optional.** Call the Skill tool with
-   `ez:no-ai-slop` and run it in detect mode over the prose inside the comments,
+3. **Run the prose pass. This step is not optional.** Run `ez:no-ai-slop`
+   (the Skill tool in Claude Code) in detect mode over the prose inside the comments,
    per "Invoked from another skill" in that skill. It reads the wording; you have
    just read the structure. Its findings join the audit as
    `path:line · SLOP · <pattern> · <fix>`. Prefer the repo's own prose skill if

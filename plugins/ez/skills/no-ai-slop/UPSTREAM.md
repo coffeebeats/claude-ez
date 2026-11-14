@@ -27,6 +27,8 @@ sit under the `ez` chain. Vendored rather than installed with
 - Added "Invoked from another skill" for `/ez:comments`, `/ez:pr`, and
   `/ez:publish`.
 - Dropped the audience-and-venue question, which the calling skill already fixes.
+- Named AGENTS.md beside CLAUDE.md in the description, so Codex sessions
+  route their instruction files here too.
 - Dropped upstream's colon-case and mandated-repetition eval checks, and added a
   carve-outs section.
 

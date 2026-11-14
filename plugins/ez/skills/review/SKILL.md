@@ -9,8 +9,8 @@ description: >-
   anchored to a line and backed by the concrete scenario in which the code
   misbehaves; an empty report is a valid result. A leading effort word (low,
   medium, high, xhigh, max) sets how much the review spends, from one diff
-  pass to a multi-agent find-and-verify run, on the same recipe table as
-  Claude Code's own /code-review. Never edits and never posts to the PR. Run
+  pass to a multi-agent find-and-verify run. Never edits and never posts to
+  the PR. Run
   it again after fixing and it reconciles against the previous run on the
   same branch in the same checkout. Works in any git repository and any
   language. Use this whenever a change needs a critical read before it ships —
@@ -136,8 +136,9 @@ Resolve the target in this order and say which case applied:
 The level is how much the review may spend, and it picks the recipe. The table
 is the one Claude Code's bundled `/code-review` runs for Opus-class models,
 cell for cell, so a bare `/ez:review` does what a bare `/code-review` does
-(`SOURCES.md` records where it comes from). Below `max` nothing is delegated:
-the angles, the check, and the sweep all run in this context.
+(`SOURCES.md` records where it comes from). It was measured on Claude
+models; any other model runs it as written. Below `max` nothing is
+delegated: the angles, the check, and the sweep all run in this context.
 
 | Level | Recipe | Angles | Per angle | Lean | Cap |
 |---|---|---|---|---|---|
@@ -154,17 +155,25 @@ than avoiding false positives — a missed bug ships — so err on the side of
 surfacing and do not drop on uncertainty: a candidate with a nameable scenario
 survives the check unless the code refutes it.
 
-**Smaller models.** If you are a Sonnet-class or smaller model, `medium` and
+**Smaller models.** If you are Claude Sonnet, Haiku, or smaller, `medium` and
 above run the `max` recipe with the chosen level's angles, candidates per
 angle, lean, and cap. That is the recipe measured for them.
 
-**Agents.** Only the `max` recipe spawns them. Spawn every agent through the
-Agent tool with its `effort` set to the level word. If the Agent tool is
-unavailable, run the `xhigh` recipe at the chosen level's cap and say so in
-the report. If the tool is there but does not offer the `ez:review-finder` or
-`ez:review-verifier` type, dispatch `general-purpose` with the contents of
-`${CLAUDE_PLUGIN_ROOT}/agents/review-finder.md` or `review-verifier.md` as
-the opening of its prompt. An agent reads; it never edits.
+**Agents.** Only the `max` recipe spawns them, each fresh-context with its
+effort set to the level word, `xhigh` where the harness has no `max`. In
+Claude Code, spawn them through the Agent tool by type, `ez:review-finder`
+or `ez:review-verifier`. Where those types are not offered, as in Codex,
+spawn a fresh agent that inherits none of this conversation
+(`general-purpose` in Claude Code; in Codex, `fork_context` false or
+`fork_turns` `"none"`) and open its task with the body, below the
+frontmatter, of `review-finder.md` or `review-verifier.md` in `../../agents/`
+relative to this skill's directory, copied verbatim, never summarized: the
+return format the agent must follow is in it; the angle and scope follow it.
+Agent slots are few: where a close tool is offered, close each agent once
+its return is pooled, and when a spawn is refused for the limit, wait for a
+running agent to finish and retry. If no agent can be spawned, run the `xhigh` recipe at
+the chosen level's cap and say so in the report. An agent reads; it never
+edits.
 
 ## What the review covers
 
@@ -255,7 +264,7 @@ the same every run; an angle with nothing behind it stays empty, and most do
 on a clean change.
 
 Below `max`, run the angles yourself, in sequence, in this context. At `max`,
-dispatch one `ez:review-finder` per angle via the Agent tool, in parallel,
+dispatch one `ez:review-finder` per angle, as **Agents** says, in parallel,
 each given the diff (or the range and worktree path), the Phase 1 summary, the
 guidance from the notes, the repo rules, and the text of its angle; pool what
 they return.
@@ -370,8 +379,8 @@ around it and re-check the candidate against the diff before keeping it. Do
 not re-judge the whole list from scratch, and under a recall lean do not drop
 on uncertainty.
 
-**At `max`,** dispatch one `ez:review-verifier` per candidate via the Agent
-tool, in parallel, each given the candidate, the Phase 1 summary, the diff,
+**At `max`,** dispatch one `ez:review-verifier` per candidate, as **Agents**
+says, in parallel, each given the candidate, the Phase 1 summary, the diff,
 the files it cites, and the worktree path if there is one. The verifier
 reasons from the code first and rules second and returns exactly one verdict.
 Its verdict stands; do not re-argue it.
